@@ -40,10 +40,7 @@ public class TakoPlatform implements DonationPlatform {
         return 150;
     }
 
-    @Override
-    public String getButtonImageUrl() {
-        return "https://i.imgur.com/QfTQLgL.png";
-    }
+
 
     @Override
     public String getPlatformName() {

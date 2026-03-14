@@ -32,10 +32,7 @@ public interface DonationPlatform {
      */
     int getMaxMessageLength();
 
-    /**
-     * @return The URL of the payment button image for email templates.
-     */
-    String getButtonImageUrl();
+
 
     /**
      * @return Human-readable platform name (e.g. "Tako.id", "Donet.co").

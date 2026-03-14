@@ -134,7 +134,7 @@ public class EmailManager {
                                  .replace("{AMOUNT_FORMATTED}", formattedAmount)
                                  .replace("{LINK}", link)
                                  .replace("{MESSAGE}", messageParam != null && !messageParam.isEmpty() ? messageParam : "-")
-                                 .replace("{BUTTON_IMAGE}", platform.getButtonImageUrl())
+
                                  .replace("{PLATFORM_NAME}", platform.getPlatformName())
                                  .replace("{PLATFORM_URL}", platform.getPlatformUrl());
 
