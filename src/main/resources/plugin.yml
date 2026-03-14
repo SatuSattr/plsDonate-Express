@@ -1,4 +1,4 @@
-name: plsDonate
+name: plsDonate-Express
 version: "1.0"
 main: click.sattr.plsDonate.PlsDonate
 api-version: "1.21"

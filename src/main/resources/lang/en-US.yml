@@ -1,6 +1,6 @@
 # plsDonate language configuration
 
-prefix: "<gray>[<green>plsDonate<gray>]<reset>"
+prefix: "<gray>[<green>plsDonate-Express<gray>]<reset>"
 no-permission: "<red>You don't have permission to do this!"
 invalid-usage: "{PREFIX} <red>Invalid usage. <reset>try to run <yellow>/{COMMAND} help<reset> for help"
 
