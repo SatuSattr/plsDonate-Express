@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "minecraft-bukkit-pro": {
+      "source": "rmyndharis/antigravity-skills",
+      "sourceType": "github",
+      "computedHash": "9554042e1d088893e73554e0e44cd8e2251aede92f27810f0cb72e6c89e9a85a"
+    }
+  }
+}

@@ -145,7 +145,7 @@ public final class PlsDonate extends JavaPlugin {
             }
         } else if (activePlatform.equals("donet")) {
             String donetToken = getConfig().getString("platform.donet.webhook-token", "");
-            if (donetToken.isEmpty() || "your_bearer_token_here".equals(donetToken)) {
+            if (donetToken.isEmpty() || "your_secret_token_here".equals(donetToken)) {
                 Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <red>[!] Donet.co Webhook Token is not set! (platform.donet.webhook-token)</red>", p));
             }
 

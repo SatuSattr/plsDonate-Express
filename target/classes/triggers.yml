@@ -1,0 +1,129 @@
+# ======================================================================= #
+#                           DONATION TRIGGERS                             #
+# ======================================================================= #
+# This system allows you to execute commands automatically when a donation
+# is received, based on advanced conditions and math calculations.
+#
+# CONTEXT: "plsDonate" is a Minecraft plugin that automatically runs console
+# commands when a player donates real-world money to the server (e.g., via
+# webhooks). This file (`triggers.yml`) defines those commands based on
+# conditions like the donation amount or message.
+#
+# You MUST adhere to these STRICT rules when generating the YAML:
+# 1. Output ONLY the YAML code for the requested trigger. Do not modify
+#    or explain previous triggers unless asked.
+# 2. Allowed properties per trigger: `enabled` (boolean), `conditions` (list),
+#    `commands` (list), and optionally `require_online` (boolean).
+# 3. Scaling rewards MUST use Math blocks with proper rounding, e.g.:
+#    `{math: floor({amount} / 1000)}`.
+# 4. Valid Operators for conditions: `==`, `!=`, `>=`, `<=`, `>`, `<`,
+#    `contains`, `!contains`, `has_permission`, `!has_permission`.
+# 5. PREFIX RULE: ALL vanilla Minecraft commands MUST be prefixed with
+#    'minecraft:' to avoid overrides (e.g., `minecraft:give {player} ...`).
+#
+# ----------------------------------------------------------------------- #
+#                             HOW IT WORKS                                #
+# ----------------------------------------------------------------------- #
+# Each trigger must have a unique identifier (e.g., 'vip_rank').
+# Inside a trigger, define:
+#   - enabled: true/false. If false, this trigger will be completely ignored.
+#   - conditions: A list of rules that MUST all be true. If empty, it always runs.
+#   - commands: A list of commands to execute from the console.
+#   - require_online: (Optional) If true, the commands will ONLY execute
+#     when the player is online in the server. If they are offline
+#     during the donation, the commands are saved to the database
+#     and will execute the moment they log in!
+#
+# ----------------------------------------------------------------------- #
+#                             PLACEHOLDERS                                #
+# ----------------------------------------------------------------------- #
+# Available in conditions and commands:
+#   {player}           - Username of the donator.
+#   {amount}           - Raw donation amount (e.g., 50000).
+#   {amount_formatted} - Formatted amount (e.g., 50.000).
+#   {message}          - Message attached to the donation.
+#   {method}           - Payment method used (e.g., QRIS).
+#   {id}               - Transaction ID.
+#
+# ----------------------------------------------------------------------- #
+#                          MATH EXPRESSIONS                               #
+# ----------------------------------------------------------------------- #
+# Perform math inside commands using: {math: <expression>}
+# Built-in rounding functions:
+#   floor(x) - Rounds DOWN to the nearest whole number (1.9 -> 1)
+#   ceil(x)  - Rounds UP to the nearest whole number (1.1 -> 2)
+#   round(x) - Rounds to the nearest whole number (1.5 -> 2)
+#
+# Example: "give {player} diamond {math: floor({amount} / 1000)}"
+# Supported operators: +, -, *, /, % (modulo).
+#
+# ----------------------------------------------------------------------- #
+#                             CONDITIONS                                  #
+# ----------------------------------------------------------------------- #
+# Syntax: "<left> <operator> <right>"
+# Operators:
+#   == (Equal)          != (Not equal)
+#   >  (Greater)        >= (Greater or equal)
+#   <  (Less)           <= (Less or equal)
+#   contains            !contains
+#   has_permission      !has_permission (Requires player to be online!)
+#
+# Examples:
+#   - "{amount} >= 50000"
+#   - "{method} == 'QRIS'"
+#   - "{message} contains 'unban'"
+#   - "{player} has_permission 'group.vip'"
+#
+# ----------------------------------------------------------------------- #
+#                             VANILLA COMMANDS                            #
+# ----------------------------------------------------------------------- #
+# To avoid command overrides by plugins like EssentialsX (which changes
+# the syntax of /give), it is HIGHLY RECOMMENDED to prefix vanilla
+# commands with 'minecraft:'.
+# Example: "minecraft:give {player} diamond 1" instead of "give ..."
+#
+# ======================================================================= #
+
+triggers:
+  # Example 1: Basic broadcast for all donations
+  # No conditions, so it runs on EVERY donation as long as it's enabled.
+  global_thank_you:
+    enabled: false
+    conditions: []
+    commands:
+      - 'minecraft:tellraw @a {"text":"Thank you ","color":"green","extra":[{"text":"{player}","color":"aqua"},{"text":" for donating ","color":"green"},{"text":"Rp{amount_formatted}","color":"yellow"},{"text":"!","color":"green"}]}'
+
+  # Example 2: Scaling math rewards (Give 1 diamond per Rp1,000)
+  # Uses 'floor' so 1500 only gives 1 diamond. Checks if online to give items!
+  diamonds_per_k:
+    enabled: false
+    require_online: true
+    conditions:
+      - "{amount} >= 1000"
+    commands:
+      - "minecraft:give {player} diamond {math: floor({amount} / 1000)}"
+      - 'minecraft:tellraw {player} {"text":"You received {math: floor({amount} / 1000)} diamonds!","color":"white"}'
+
+  # Example 3: Permission Check + Math Scaling
+  # Gives double rewards (2x) only if the player already has MVP rank.
+  mvp_double_reward:
+    enabled: false
+    require_online: false
+    conditions:
+      - "{amount} >= 1000"
+      - "{player} has_permission 'group.mvp'"
+    commands:
+      - "eco give {player} {math: floor({amount} / 1000) * 2}"
+      - 'minecraft:tellraw {player} {"text":"[MVP Bonus] ","color":"yellow","extra":[{"text":"You received double coins!","color":"green"}]}'
+
+  # Example 4: Specific Payment Method Bonus
+  # Only triggers if they used 'QRIS' and donated more than 50k
+  qris_payment_bonus:
+    enabled: false
+    require_online: true
+    conditions:
+      - "{amount} >= 50000"
+      - "{method} == 'QRIS'"
+    commands:
+      - "minecraft:give {player} golden_apple 5"
+      - 'minecraft:tellraw {player} {"text":"Thanks for using QRIS! Enjoy 5 Golden Apples.","color":"green"}'

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tako Payment Button</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Konfigurasi custom classes dari referensi Tailwind -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              nunito: ['"Nunito"', "sans-serif"],
+            },
+            colors: {
+              "blue-primary": "#3ba1ec" /* Warnai sesuai screenshot birunya */,
+              "blue-secondary": "#1f70a9" /* Warna shadow / border gelapnya */,
+            },
+            boxShadow: {
+              trail: "4px 4px 0px 0px var(--tw-shadow-color)",
+              "trail-half": "2px 2px 0px 0px var(--tw-shadow-color)",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="m-0 p-12 flex justify-center items-center h-screen font-nunito">
+    <!-- Kontainer selebar tombol di screenshot -->
+    <div class="w-50">
+      <!-- Tombol dengan class Tailwind 1-to-1 seperti contohmu, disesuaikan custom namenya -->
+      <button
+        class="hidden flex items-center gap-2 justify-center shrink-0 text-center rounded-lg hover:opacity-90 duration-200 disabled:!opacity-50 disabled:cursor-not-allowed text-white ease-out origin-center w-full text-lg font-bold px-5 py-3 border shadow-trail shadow-blue-secondary hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-trail-half active:translate-x-[4px] active:translate-y-[4px] active:shadow-none bg-blue-primary border-blue-secondary"
+        type="button"
+      >
+        <span>Continue with</span>
+        <!-- Logo Image -->
+        <img
+          src="https://i.imgur.com/QfTQLgL.png"
+          alt="Tako"
+          class="h-6 object-contain -mt-0.5"
+        />
+      </button>
+
+      <button
+        class="inline-flex items-center gap-2 px-5 py-3 rounded-lg text-white text-lg text-center font-medium hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+        style="
+          font-family: 'Geist';
+          background: linear-gradient(180deg, #f7be5b 1.35%, #f38e09 101.35%);
+        "
+      >
+        Continue with
+        <img
+          src="C:\Users\airry\Downloads\0fSsXHIZUN-1753184383596 (1).png"
+          alt="brand"
+          class="h-6 w-auto object-contain -translate-y-[2px]"
+        />
+      </button>
+    </div>
+  </body>
+</html>

@@ -86,7 +86,7 @@ public class DonetPlatform implements DonationPlatform {
     public WebhookResult parseWebhook(String body, Headers headers) {
         String token = plugin.getConfig().getString("platform.donet.webhook-token", "");
 
-        if (token.isEmpty() || token.equals("your_bearer_token_here")) {
+        if (token.isEmpty() || token.equals("your_secret_token_here")) {
             return new WebhookResult(false, "platform.donet.webhook-token is empty or invalid. Setup incomplete.", null, null, null, 0, null, null);
         }
 

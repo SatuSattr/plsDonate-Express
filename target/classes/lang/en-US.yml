@@ -1,0 +1,90 @@
+# plsDonate language configuration
+
+prefix: "<gray>[<green>plsDonate<gray>]<reset>"
+no-permission: "<red>You don't have permission to do this!"
+invalid-usage: "{PREFIX} <red>Invalid usage. <reset>try to run <yellow>/{COMMAND} help<reset> for help"
+
+reload-success: "{PREFIX} <white>Configuration reloaded <green>successfully!"
+cooldown-error: "{PREFIX} <white>Sorry, you're still in <yellow>{TIME}s <white>cooldown"
+general-error: "{PREFIX} <red>Something wrong with the donation system! please contact admin"
+min-donation-error: "{PREFIX} <white>Sorry, <red>minimum <white>amount of donation is <yellow>Rp{AMOUNT_FORMATTED}"
+max-donation-error: "{PREFIX} <white>Sorry, <red>maximum <white>amount of donation is <yellow>Rp{AMOUNT_FORMATTED}"
+invalid-email: "{PREFIX} <white>Please <red>provide <white>a valid email <gray>example: (your@gmail.com)"
+message-length-error: "{PREFIX} <white>Sorry, <red>maximal length <white>of the message is <yellow>{LIMIT} Character. <white>Please shorten your message."
+startup-success: "{PREFIX} plsDonate has been <green>loaded successfully! <reset>Webhook is listening on port <yellow>{PORT}"
+webhook-token-warning: "{PREFIX} <red>[!] WARNING: Your webhook token is still using the default value! Please change it in config.yml for security. <reset>"
+
+donation-tab-completions-args2:
+  - "your@email.com"
+donation-tab-completions-args3:
+  - "message"
+
+# Available Placeholder: {PREFIX}, {PLAYER}, {AMOUNT}, {AMOUNT_FORMATTED}, {EMAIL}, {MESSAGE}, {COMMAND}
+donation-confirmation-java:
+  - ""
+  - "{PREFIX} Are you sure about your <#C8A1FF>Donation?"
+  - ""
+  - "  <gray>» <#EFEFEF>Amount: <green>Rp{AMOUNT_FORMATTED}"
+  - "  <gray>» <#EFEFEF>Email: <gray>{EMAIL}"
+  - "  <gray>» <#EFEFEF>Message: <reset>{MESSAGE}"
+  - ""
+  - '     <hover:show_text:"<gray>We will generate the payment link<newline>right after you click this prompt."><click:run_command:"{COMMAND}"><green><underlined>[Yes]<reset>     <hover:show_text:"<gray>Just ignore this prompt if<newline>you don’t want to continue."><gray>[No]'
+  - ""
+
+# Available Placeholder: {PREFIX}, {PAYMENT_URL}
+donation-success-java:
+  - ""
+  - "{PREFIX} Click below to <yellow>complete<reset> your donation."
+  - ""
+  - "  <gray>» <click:open_url:{PAYMENT_URL}><#EFEFEF><underlined>Continue your payment<reset>"
+  - ""
+
+# Available Placeholder: {PREFIX}, {PLAYER}, {AMOUNT}, {AMOUNT_FORMATTED}, {MESSAGE}, {EMAIL}, {METHOD}, {ID}
+donation-notification:
+  - ""
+  - "  <#977AF1>█<#e1d9fa>█  <#c3b0ff>{PLAYER} <reset>just donated <green>Rp{AMOUNT_FORMATTED} <reset>to the server!"
+  - "  <#e1d9fa>█<#977AF1>█  <#b987ff>» <#e0e0e0>{MESSAGE}"
+  - ""
+
+donation-confirmation-bedrock:
+  title: Donation Confirmation
+  content:
+    - <white>Are you sure about your <light_purple>Donation?
+    - ""
+    - "  <gray>» Amount: <green>Rp{AMOUNT}"
+    - "  <gray>» Email: {EMAIL}"
+    - "  <gray>» Email: <reset>{MESSAGE}"
+    - ""
+    - <white>We will send the payment link to your <gold>Email <white>after you click
+      Yes.
+    - ""
+  btn-yes: "Yes"
+  btn-no: "No"
+
+# Available Placeholder: {PREFIX}, {COMMAND}
+donation-help:
+  - "<gray><st>       <reset> <green>plsDonate Donation Help <gray><st>       <newline>"
+  - "    <yellow>/{COMMAND} <amount> <email> [message]"
+  - "    <gray>Example: <white>/{COMMAND} 10000 hello@gmail.com Thanks!"
+  - "<newline><gray>------------------------------------"
+
+donation-form-bedrock:
+  title: "Support Our Server"
+  error-prefix: "<red><bold>Error: <reset><red>{ERROR}"
+  amount:
+    label: "<newline>Amount <gray>(Min: {MIN})"
+    placeholder: "e.g. 50000"
+  email:
+    label: "Email"
+    placeholder: "e.g. email@gmail.com"
+  message:
+    label: "Message <gray>(Optional)"
+    placeholder: "Type a message here"
+
+# General / System Messages
+command-only-players: "{PREFIX} <red>Only players can execute this command.</red>"
+fake-donation-triggered: "{PREFIX} <green>Fake donation successfully triggered!</green>"
+fake-donation-processed: "{PREFIX} <green>Fake donation form successfully processed!</green>"
+donation-processing: "{PREFIX} <gray>Processing your donation form... Please check your email shortly!</gray>"
+donation-email-sent: "{PREFIX} <green>A payment link has been sent to your email!</green>"
+api-error: "{PREFIX} <red>API Error: {ERROR}</red>"

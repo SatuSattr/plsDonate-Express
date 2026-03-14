@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>Donation Payment</title>
+  </head>
+
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111827;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    "
+  >
+    <!-- Preheader -->
+    <div
+      style="
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        mso-hide: all;
+      "
+    >
+      Your donation payment link is ready. Complete your donation.
+    </div>
+
+    <!-- Wrapper -->
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="padding: 30px 0"
+    >
+      <tr>
+        <td align="center" style="padding: 0px 0px">
+          <!-- Container -->
+          <table
+            role="presentation"
+            width="460"
+            cellpadding="0"
+            cellspacing="0"
+            style="width: 450px; max-width: 600px"
+          >
+            <tr>
+              <td
+                style="
+                  background: #ffffff;
+                  border: 1px solid #e5e7eb;
+                  border-radius: 16px;
+                  overflow: hidden;
+                "
+              >
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td style="padding: 26px">
+                      <h2
+                        style="
+                          margin: 0 0 12px 0;
+                          font-size: 20px;
+                          font-weight: 700;
+                          color: #111827;
+                        "
+                      >
+                        Complete Your Donation
+                      </h2>
+
+                      <div
+                        style="
+                          font-size: 15px;
+                          line-height: 1.6;
+                          margin-bottom: 20px;
+                          color: #374151;
+                        "
+                      >
+                        Hi
+                        <strong style="color: #111827">{PLAYER}</strong>, here
+                        is your payment link for a donation to the server. Your
+                        support means everything to us!
+                      </div>
+
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        style="
+                          border: 1px solid #e5e7eb;
+                          border-radius: 12px;
+                          background-color: #f9fafb;
+                        "
+                      >
+                        <tr>
+                          <td style="padding: 18px">
+                            <table
+                              role="presentation"
+                              width="100%"
+                              cellpadding="0"
+                              cellspacing="0"
+                              style="font-size: 15px; color: #374151"
+                            >
+                              <tr>
+                                <td
+                                  style="padding-bottom: 4px; font-weight: bold"
+                                >
+                                  Amount:
+                                </td>
+                                <td
+                                  align="right"
+                                  style="
+                                    padding-bottom: 4px;
+                                    font-weight: bold;
+                                    color: #0b0b0b;
+                                    font-size: 18px;
+                                  "
+                                >
+                                  Rp{AMOUNT_FORMATTED}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td
+                                  style="
+                                    padding-top: 8px;
+                                    font-weight: bold;
+                                    vertical-align: top;
+                                  "
+                                >
+                                  Message:
+                                </td>
+                                <td
+                                  align="right"
+                                  style="
+                                    padding-top: 8px;
+                                    color: #4b5563;
+                                    vertical-align: top;
+                                  "
+                                >
+                                  {MESSAGE}
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- Payment Button -->
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        style="margin-top: 24px"
+                      >
+                        <tr>
+                          <td align="center">
+                            <a
+                              href="{LINK}"
+                              style="
+                                display: inline-block;
+                                text-decoration: none;
+                              "
+                            >
+                              <img
+                                src="{BUTTON_IMAGE}"
+                                alt="Continue with {PLATFORM_NAME}"
+                                width="250"
+                                style="
+                                  display: block;
+                                  width: 200px;
+                                  max-width: 100%;
+                                  border: 0;
+                                  outline: none;
+                                "
+                              />
+                            </a>
+                            <div
+                              style="
+                                margin-top: 16px;
+                                font-size: 12px;
+                                color: #6b7280;
+                                line-height: 1.6;
+                                word-break: break-all;
+                              "
+                            >
+                              If the button doesn't work, use this link:<br />
+                              <a
+                                href="{LINK}"
+                                style="
+                                  color: #3ba1ec;
+                                  text-decoration: underline;
+                                "
+                                >{LINK}</a
+                              >
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  padding: 16px;
+                  text-align: center;
+                  font-size: 12px;
+                  color: #9ca3af;
+                  line-height: 1.6;
+                "
+              >
+                <strong>Disclaimer:</strong> Transactions safely handled by
+                <a
+                  href="{PLATFORM_URL}"
+                  target="_blank"
+                  style="color: #3ba1ec; text-decoration: underline"
+                  >{PLATFORM_NAME}</a
+                ><br />
+                If you didn't initiate this, please ignore. © 2026 plsDonate
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
