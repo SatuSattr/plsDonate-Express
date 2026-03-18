@@ -12,17 +12,17 @@ This file serves as the foundational mandate for all AI interactions within the 
 *   **Offline Rewards**: Persistent storage (`offline_triggers.yml`) ensures rewards are delivered even if a player is offline during the donation.
 *   **Bedrock Support**: Native UI support for Bedrock Edition players via Geyser/Floodgate.
 *   **Email System**: SMTP-based email dispatching for sending payment links to players.
-*   **Overlay API Integration**: Support for fetching donation leaderboard and milestone progress from a self-hosted Tako Overlay API.
+*   **Overlay API Integration**: Asynchronous fetching and caching of donation leaderboard and milestone data from a self-hosted Tako Overlay API. Includes periodic background updates and manual `--update` triggers.
 
 ## Technical Architecture
 The plugin follows a modular, manager-based architecture:
 *   **`PlsDonate`**: Central orchestrator and plugin entry point.
 *   **`StorageManager`**: Manages YAML-based persistence for offline rewards.
-*   **`WebhookManager`**: Handles the internal HTTP server and webhook verification (HmacSHA256).
+*   **`WebhookManager`**: Handles the internal HTTP server, webhook verification (HmacSHA256), and triggers real-time cache refreshes upon successful donations.
 *   **`TriggersManager`**: Parses and executes rewards defined in `triggers.yml`.
 *   **`TakoPlatform`**: Implements the `DonationPlatform` interface for API communication.
 *   **`EmailManager`**: Handles SMTP communication for transactional emails.
-*   **`OverlayManager`**: Handles asynchronous communication with the self-hosted Tako Overlay API for leaderboard and milestone data.
+*   **`OverlayManager`**: Handles asynchronous communication and thread-safe caching for the self-hosted Tako Overlay API.
 
 ## Technology Stack
 *   **Language**: Java 21
@@ -41,6 +41,8 @@ The plugin follows a modular, manager-based architecture:
 ## Development Conventions
 *   **Command Prefixes**: When defining triggers, always prefix vanilla commands with `minecraft:` (e.g., `minecraft:give`) to ensure compatibility.
 *   **No Local Database**: Donation records are managed by the external platform; local storage is strictly for `offline_triggers`.
+*   **Configuration Safety**: `ConfigUpdater` is used for `config.yml` and `lang/` files, but **MUST NOT** be used for `triggers.yml` to prevent accidental deletion of custom user-defined triggers.
+*   **Asynchronous Operations**: All API calls and heavy I/O (like `OverlayManager` fetches) must be performed asynchronously to avoid blocking the main server thread.
 *   **Surgical Edits**: When modifying the codebase, prioritize maintaining the manager-based abstraction layers.
 *   **Testing**: Verification of webhook handling and trigger execution is critical for stability.
 
