@@ -32,8 +32,8 @@ public class OverlayManager {
     }
 
     public boolean isConfigured() {
-        String baseUrl = plugin.getConfig().getString("overlay-api.base-url", "");
-        String overlayKey = plugin.getConfig().getString("overlay-api.overlay-key", "");
+        String baseUrl = plugin.getConfig().getString("tako.overlay-api.base-url", "");
+        String overlayKey = plugin.getConfig().getString("tako.overlay-api.overlay-key", "");
         return !baseUrl.isEmpty() && !overlayKey.isEmpty();
     }
 
@@ -127,9 +127,9 @@ public class OverlayManager {
     }
 
     private CompletableFuture<JsonObject> fetch(String type) {
-        String baseUrl = plugin.getConfig().getString("overlay-api.base-url", "");
-        String apiKey = plugin.getConfig().getString("overlay-api.api-key", "");
-        String overlayKey = plugin.getConfig().getString("overlay-api.overlay-key", "");
+        String baseUrl = plugin.getConfig().getString("tako.overlay-api.base-url", "");
+        String apiKey = plugin.getConfig().getString("tako.overlay-api.api-key", "");
+        String overlayKey = plugin.getConfig().getString("tako.overlay-api.overlay-key", "");
 
         if (baseUrl.isEmpty() || overlayKey.isEmpty()) {
             return CompletableFuture.completedFuture(null);

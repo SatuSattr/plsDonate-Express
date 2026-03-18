@@ -83,7 +83,7 @@ public final class PlsDonate extends JavaPlugin implements Listener {
                 getLogger().info("Successfully cached leaderboard and milestone data.");
             });
             
-            long interval = getConfig().getLong("overlay-api.update-interval", 7);
+            long interval = getConfig().getLong("tako.overlay-api.update-interval", 7);
             if (interval > 0) {
                 Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
                     overlayManager.updateCacheAsync();
@@ -147,24 +147,24 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         Map<String, String> p = new HashMap<>();
         p.put("{PREFIX}", langConfig.getString("prefix", "<gray>[<green>plsDonate<gray>]<reset>"));
 
-        String takoToken = getConfig().getString("platform.tako.webhook-token", "your_secret_token_here");
+        String takoToken = getConfig().getString("tako.webhook-token", "your_secret_token_here");
         if (takoToken.isEmpty() || "your_secret_token_here".equals(takoToken)) {
-            Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <red>[!] Tako.id Webhook Token is not set! (platform.tako.webhook-token)</red>", p));
+            Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <red>[!] Tako.id Webhook Token is not set! (tako.webhook-token)</red>", p));
         }
 
-        String takoCreator = getConfig().getString("platform.tako.creator", "");
+        String takoCreator = getConfig().getString("tako.creator", "");
         if (takoCreator.isEmpty()) {
-            Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <red>[!] Tako.id Creator is empty! (platform.tako.creator)</red>", p));
+            Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <red>[!] Tako.id Creator is empty! (tako.creator)</red>", p));
         }
 
-        String takoKey = getConfig().getString("platform.tako.api-key", "your_secret_api_key_here");
+        String takoKey = getConfig().getString("tako.api-key", "your_secret_api_key_here");
         if (takoKey.isEmpty() || "your_secret_api_key_here".equals(takoKey)) {
-            Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <red>[!] Tako.id API Key is empty! (platform.tako.api-key)</red>", p));
+            Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <red>[!] Tako.id API Key is empty! (tako.api-key)</red>", p));
         }
 
         // Check Overlay API
-        String overlayBase = getConfig().getString("overlay-api.base-url", "");
-        String overlayKey = getConfig().getString("overlay-api.overlay-key", "");
+        String overlayBase = getConfig().getString("tako.overlay-api.base-url", "");
+        String overlayKey = getConfig().getString("tako.overlay-api.overlay-key", "");
         if (overlayBase.isEmpty() || overlayKey.isEmpty()) {
             Bukkit.getConsoleSender().sendMessage(parseMessage("{PREFIX} <yellow>[!] Overlay API is not fully configured. /pdn leaderboard/milestone will be disabled.</yellow>", p));
         }

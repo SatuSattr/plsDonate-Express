@@ -7,36 +7,34 @@ enabled: true
 # Available languages: en-US
 language: "en-US"
 
-# Donation Platform Configuration
-# This version only supports Tako.id
-platform:
-  # Tako.id API Integration
-  tako:
-    # Your creator name on tako.id.
-    creator: ""
+# Tako.id API Integration
+tako:
+  # Your creator name on tako.id.
+  creator: ""
 
-    # Your private API key from the tako.id creator dashboard.
-    api-key: "your_secret_api_key_here"
+  # Your private API key from the tako.id creator dashboard.
+  api-key: "your_secret_api_key_here"
 
-    # Secret token used to verify incoming webhooks from tako.id.
-    webhook-token: "your_secret_token_here"
+  # Secret token used to verify incoming webhooks from tako.id.
+  webhook-token: "your_secret_token_here"
 
-# Overlay API Configuration (Optional: Used for /pdn leaderboard and /pdn milestone)
-# You can self-host this API on Vercel: https://github.com/SatuSattr/Tako-Overlay-API
-overlay-api:
-  # The base URL of your self-hosted Tako Overlay API.
-  base-url: ""
-  
-  # The API key for your self-hosted API (if configured).
-  api-key: ""
-  
-  # Your Tako.id overlay key (found in the overlay URL).
-  # Example: https://tako.id/overlay/milestone?overlay_key=vignbq3...
-  overlay-key: ""
-  
-  # How often (in minutes) the plugin should automatically update the cache.
-  # Set to 0 to disable automatic updates.
-  update-interval: 7
+  # Overlay API Configuration (Optional: Used for /pdn leaderboard and /pdn milestone)
+  # You can self-host this API on Vercel: https://github.com/SatuSattr/Tako-Overlay-API
+  overlay-api:
+    # The base URL of your self-hosted Tako Overlay API.
+    base-url: ""
+
+    # The API key for your self-hosted API (if configured).
+    api-key: ""
+
+    # Your Tako.id overlay key (found in the overlay URL).
+    # Example: https://tako.id/overlay/milestone?overlay_key=vignbq3...
+    overlay-key: ""
+
+    # How often (in minutes) the plugin should automatically update the cache.
+    # Set to 0 to disable automatic updates.
+    # dont set above 10 if you dont want your API to enter cold mode.
+    update-interval: 7
 
 # Webhook Listener Configuration
 webhook:
