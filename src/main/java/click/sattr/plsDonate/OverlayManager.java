@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 public class OverlayManager {
 
@@ -66,7 +67,7 @@ public class OverlayManager {
                 MilestoneData ms = msFuture.get();
                 if (ms != null) milestoneCache.set(ms);
             } catch (Exception e) {
-                plugin.getLogger().severe("Error updating overlay cache: " + e.getMessage());
+                plugin.getLogger().log(Level.SEVERE, "Error updating overlay cache:", e);
             }
         });
     }
@@ -158,13 +159,19 @@ public class OverlayManager {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     if (response.statusCode() == 200) {
-                        return JsonParser.parseString(response.body()).getAsJsonObject();
+                        try {
+                            return JsonParser.parseString(response.body()).getAsJsonObject();
+                        } catch (Exception e) {
+                            plugin.getLogger().severe("Failed to parse Overlay API response as JSON (" + type + "): " + response.body());
+                            return null;
+                        }
                     } else {
-                        plugin.getLogger().warning("Overlay API (" + type + ") returned status code: " + response.statusCode());
+                        plugin.getLogger().severe("Overlay API (" + type + ") returned error status " + response.statusCode() + "!");
+                        plugin.getLogger().severe("Response body: " + response.body());
                         return null;
                     }
                 }).exceptionally(ex -> {
-                    plugin.getLogger().severe("Error fetching overlay data (" + type + "): " + ex.getMessage());
+                    plugin.getLogger().log(Level.SEVERE, "Exception while fetching overlay data (" + type + "):", ex);
                     return null;
                 });
     }
