@@ -15,6 +15,7 @@ import click.sattr.plsDonate.platform.tako.TakoPlatform;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +38,10 @@ public final class PlsDonate extends JavaPlugin implements Listener {
     private BedrockFormHandler bedrockFormHandler;
     private DonateCommand donateCommand;
     private plsDonateCommand pdnCommand;
+    
+    // Scheduled tasks storage for reloads
+    private BukkitTask overlayUpdateTask;
+    private BukkitTask overlayPingTask;
 
     // Getters for subsystems
     public StorageManager getStorageManager() { return storageManager; }
@@ -77,24 +82,7 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         overlayManager = new OverlayManager(this);
         
         // Initial update and schedule periodic tasks
-        if (overlayManager.isConfigured()) {
-            getLogger().info("Fetching initial leaderboard and milestone data from Overlay API...");
-            overlayManager.updateCacheAsync().thenRun(() -> {
-                getLogger().info("Successfully cached leaderboard and milestone data.");
-            });
-            
-            long interval = getConfig().getLong("tako.overlay-api.update-interval", 7);
-            if (interval > 0) {
-                Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
-                    overlayManager.updateCacheAsync();
-                }, interval * 1200L, interval * 1200L); // Interval in minutes to ticks (20 * 60)
-            }
-
-            // Schedule silent ping every 3 minutes to keep API warm
-            Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
-                overlayManager.pingApi();
-            }, 600L, 3600L); // Initial 30s delay, then every 3 minutes (180s * 20 ticks)
-        }
+        setupOverlayTasks();
 
         // Initialize Storage Manager
         storageManager = new StorageManager(this);
@@ -146,6 +134,33 @@ public final class PlsDonate extends JavaPlugin implements Listener {
             
             checkImportantConfigs();
         });
+    }
+
+    private void setupOverlayTasks() {
+        // Cancel existing tasks if they exist (for reloads)
+        if (overlayUpdateTask != null) overlayUpdateTask.cancel();
+        if (overlayPingTask != null) overlayPingTask.cancel();
+
+        if (overlayManager != null && overlayManager.isConfigured()) {
+            // Initial fetch
+            getLogger().info("Fetching initial leaderboard and milestone data from Overlay API...");
+            overlayManager.updateCacheAsync().thenRun(() -> {
+                getLogger().info("Successfully cached leaderboard and milestone data.");
+            });
+            
+            // Schedule periodic cache update
+            long interval = getConfig().getLong("tako.overlay-api.update-interval", 7);
+            if (interval > 0) {
+                overlayUpdateTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+                    overlayManager.updateCacheAsync();
+                }, interval * 1200L, interval * 1200L); // Interval in minutes to ticks (20 * 60)
+            }
+
+            // Schedule silent ping every 3 minutes to keep API warm
+            overlayPingTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+                overlayManager.pingApi();
+            }, 600L, 3600L); // Initial 30s delay, then every 3 minutes (180s * 20 ticks)
+        }
     }
 
     private void checkImportantConfigs() {
@@ -255,6 +270,9 @@ public final class PlsDonate extends JavaPlugin implements Listener {
                 getLogger().warning("Failed to initialize Bedrock forms during reload.");
             }
         }
+
+        // Re-setup overlay tasks with new config
+        setupOverlayTasks();
 
         int port = getConfig().getInt("webhook.port", 8080);
         String path = getConfig().getString("webhook.path", "/donate");
