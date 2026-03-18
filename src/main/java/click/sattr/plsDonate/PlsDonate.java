@@ -89,6 +89,11 @@ public final class PlsDonate extends JavaPlugin implements Listener {
                     overlayManager.updateCacheAsync();
                 }, interval * 1200L, interval * 1200L); // Interval in minutes to ticks (20 * 60)
             }
+
+            // Schedule silent ping every 3 minutes to keep API warm
+            Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+                overlayManager.pingApi();
+            }, 600L, 3600L); // Initial 30s delay, then every 3 minutes (180s * 20 ticks)
         }
 
         // Initialize Storage Manager

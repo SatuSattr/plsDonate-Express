@@ -126,6 +126,14 @@ public class OverlayManager {
         });
     }
 
+    /**
+     * Sends a silent ping request to keep the Serverless API warm.
+     */
+    public void pingApi() {
+        if (!isConfigured()) return;
+        fetch("ping");
+    }
+
     private CompletableFuture<JsonObject> fetch(String type) {
         String baseUrl = plugin.getConfig().getString("tako.overlay-api.base-url", "");
         String apiKey = plugin.getConfig().getString("tako.overlay-api.api-key", "");

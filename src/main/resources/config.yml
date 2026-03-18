@@ -33,7 +33,7 @@ tako:
 
     # How often (in minutes) the plugin should automatically update the cache.
     # Set to 0 to disable automatic updates.
-    # dont set above 10 if you dont want your API to enter cold mode.
+    # don't set above 10 if you dont want your API to enter cold mode. (slower)
     update-interval: 7
 
 # Webhook Listener Configuration
