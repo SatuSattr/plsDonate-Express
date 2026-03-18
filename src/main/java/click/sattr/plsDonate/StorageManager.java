@@ -15,8 +15,8 @@ public class StorageManager {
     private final File storageFile;
     private FileConfiguration storageConfig;
     
-    private final File donationsFile;
-    private FileConfiguration donationsConfig;
+    private final File transactionsFile;
+    private FileConfiguration transactionsConfig;
 
     public StorageManager(PlsDonate plugin) {
         this.plugin = plugin;
@@ -26,7 +26,7 @@ public class StorageManager {
         }
         
         this.storageFile = new File(dataDir, "offline_triggers.yml");
-        this.donationsFile = new File(dataDir, "donations.yml");
+        this.transactionsFile = new File(dataDir, "transactions.yml");
         
         loadConfigs();
     }
@@ -38,11 +38,11 @@ public class StorageManager {
         }
         storageConfig = YamlConfiguration.loadConfiguration(storageFile);
 
-        // Handle donations.yml
-        if (!donationsFile.exists()) {
-            plugin.saveResource("data/donations.yml", false);
+        // Handle transactions.yml
+        if (!transactionsFile.exists()) {
+            plugin.saveResource("data/transactions.yml", false);
         }
-        donationsConfig = YamlConfiguration.loadConfiguration(donationsFile);
+        transactionsConfig = YamlConfiguration.loadConfiguration(transactionsFile);
     }
 
     private void saveConfig() {
@@ -53,11 +53,11 @@ public class StorageManager {
         }
     }
 
-    private void saveDonations() {
+    private void saveTransactions() {
         try {
-            donationsConfig.save(donationsFile);
+            transactionsConfig.save(transactionsFile);
         } catch (IOException e) {
-            plugin.getLogger().severe("Could not save donations.yml: " + e.getMessage());
+            plugin.getLogger().severe("Could not save transactions.yml: " + e.getMessage());
         }
     }
 
@@ -83,20 +83,20 @@ public class StorageManager {
     
     public synchronized void createDonationRequest(String txId, double amount, String name) {
         String path = "transactions." + txId;
-        donationsConfig.set(path + ".checksum", calculateMD5(txId + amount + name));
-        donationsConfig.set(path + ".timestamp", System.currentTimeMillis() / 1000L);
-        donationsConfig.set(path + ".status", "PENDING");
-        saveDonations();
+        transactionsConfig.set(path + ".checksum", calculateMD5(txId + amount + name));
+        transactionsConfig.set(path + ".timestamp", System.currentTimeMillis() / 1000L);
+        transactionsConfig.set(path + ".status", "PENDING");
+        saveTransactions();
     }
 
     public synchronized boolean isTransactionValid(String txId, double amount, String name) {
         String path = "transactions." + txId;
-        if (!donationsConfig.contains(path)) return false;
+        if (!transactionsConfig.contains(path)) return false;
         
-        String status = donationsConfig.getString(path + ".status", "PENDING");
+        String status = transactionsConfig.getString(path + ".status", "PENDING");
         if (!"PENDING".equals(status)) return false;
 
-        String storedChecksum = donationsConfig.getString(path + ".checksum");
+        String storedChecksum = transactionsConfig.getString(path + ".checksum");
         String currentChecksum = calculateMD5(txId + amount + name);
         
         return currentChecksum.equals(storedChecksum);
@@ -104,9 +104,9 @@ public class StorageManager {
 
     public synchronized void markTransactionUsed(String txId) {
         String path = "transactions." + txId;
-        donationsConfig.set(path + ".status", "COMPLETED");
-        donationsConfig.set(path + ".completed_at", System.currentTimeMillis() / 1000L);
-        saveDonations();
+        transactionsConfig.set(path + ".status", "COMPLETED");
+        transactionsConfig.set(path + ".completed_at", System.currentTimeMillis() / 1000L);
+        saveTransactions();
     }
 
     private String calculateMD5(String input) {

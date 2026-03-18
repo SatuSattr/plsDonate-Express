@@ -1,4 +1,0 @@
-# Ledger of donation requests and completed transactions to prevent replay attacks.
-# WARNING: DO NOT MODIFY THIS FILE MANUALLY!
-
-transactions: {}
