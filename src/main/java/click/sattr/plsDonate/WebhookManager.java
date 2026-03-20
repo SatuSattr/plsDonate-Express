@@ -91,37 +91,6 @@ public class WebhookManager {
                 // Mark as completed in Ledger
                 plugin.getStorageManager().markTransactionUsed(transactionId);
 
-                // Global Broadcast Notification (Always if webhook is valid)
-                if (plugin.getConfig().getBoolean("donate.notification", true)) {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        java.util.Map<String, String> p = plugin.getDonationPlaceholders(result.donorName(), result.amount(), result.donorEmail(), result.paymentMethod(), result.message());
-                        p.put("{ID}", transactionId);
-                        p.put("{PREFIX}", plugin.getLangConfig().getString("prefix", "[plsDonate]"));
-
-                        plugin.sendLangMessageList(Bukkit.getConsoleSender(), "donation-notification", p);
-                        for (org.bukkit.entity.Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                            plugin.sendLangMessageList(onlinePlayer, "donation-notification", p);
-                            plugin.playConfigSounds(onlinePlayer, "sound-effects.donation-received");
-                        }
-
-                        if (plugin.getTriggersManager() != null) {
-                            plugin.getTriggersManager().processDonation(
-                                result.donorName(),
-                                result.amount(),
-                                plugin.formatIndonesianNumber(result.amount()),
-                                result.message(),
-                                result.paymentMethod(),
-                                transactionId
-                            );
-                        }
-                        
-                        // Update Overlay Cache on donation
-                        if (plugin.getOverlayManager() != null && plugin.getOverlayManager().isConfigured()) {
-                            plugin.getOverlayManager().updateCacheAsync();
-                        }
-                    });
-                }
-
                 sendResponse(exchange, 200, "OK");
 
             } catch (Exception e) {

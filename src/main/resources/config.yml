@@ -18,23 +18,16 @@ tako:
   # Secret token used to verify incoming webhooks from tako.id.
   webhook-token: "your_secret_token_here"
 
-  # Overlay API Configuration (Optional: Used for /pdn leaderboard and /pdn milestone)
-  # You can self-host this API on Vercel: https://github.com/SatuSattr/Tako-Overlay-API
-  overlay-api:
-    # The base URL of your self-hosted Tako Overlay API.
-    base-url: ""
-
-    # The API key for your self-hosted API (if configured).
-    api-key: ""
-
-    # Your Tako.id overlay key (found in the overlay URL).
-    # Example: https://tako.id/overlay/milestone?overlay_key=vignbq3...
-    overlay-key: ""
-
-    # How often (in minutes) the plugin should automatically update the cache.
-    # Set to 0 to disable automatic updates.
-    # don't set above 10 if you dont want your API to enter cold mode. (slower)
-    update-interval: 7
+  # Local Milestone Configuration (Replaces Overlay API)
+  milestone:
+    # Whether to enable the milestone/goal feature
+    enabled: true
+    # The title of your donation goal
+    title: "Monthly Server Goal"
+    # The target amount in IDR
+    target: 1000000
+    # Starting amount (if you want to include previous donations manually)
+    start-offset: 0
 
 # Webhook Listener Configuration
 webhook:

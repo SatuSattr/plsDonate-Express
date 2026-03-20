@@ -21,7 +21,7 @@ public class BedrockFormHandler {
         return FloodgateApi.getInstance().isFloodgatePlayer(player.getUniqueId());
     }
 
-    public void sendConfirmationForm(Player player, double amount, String email, String method, String message, boolean isFake) {
+    public void sendConfirmationForm(Player player, double amount, String email, String method, String message, boolean isSimulation, boolean isSandbox) {
         String title = plugin.getLangConfig().getString("donation-confirmation-bedrock.title", "Confirm Donation");
         String btnYes = plugin.getLangConfig().getString("donation-confirmation-bedrock.btn-yes", "Yes");
         String btnNo = plugin.getLangConfig().getString("donation-confirmation-bedrock.btn-no", "No");
@@ -61,7 +61,11 @@ public class BedrockFormHandler {
             .button(btnNo)
             .validResultHandler(response -> {
                 if (response.clickedButtonId() == 0) {
-                    processBedrockDonation(player, amount, email, method, message, isFake);
+                    if (isSimulation) {
+                        processSimulatedDonation(player, amount, email, method, message, isSandbox);
+                    } else {
+                        processBedrockDonation(player, amount, email, method, message);
+                    }
                 }
             })
             .build();
@@ -72,35 +76,40 @@ public class BedrockFormHandler {
         plugin.playConfigSounds(player, "sound-effects.donation-confirmation");
     }
 
-    private void processBedrockDonation(Player player, double amount, String email, String method, String message, boolean isFake) {
-        if (isFake) {
-                String formattedAmount = plugin.formatIndonesianNumber(amount);
-                String txId = "FAKETX-" + System.currentTimeMillis();
+    private void processSimulatedDonation(Player player, double amount, String email, String method, String message, boolean isSandbox) {
+        String formattedAmount = plugin.formatIndonesianNumber(amount);
+        String txId = (isSandbox ? "FAKETX-" : "PUSHTX-") + System.currentTimeMillis();
 
-                // 1. Broadcast Global Notifications
-                if (plugin.getConfig().getBoolean("donate.notification", true)) {
-                    Map<String, String> p = plugin.getDonationPlaceholders(player.getName(), amount, email, method, message);
-                    p.put("{ID}", txId);
-                    p.put("{PREFIX}", plugin.getLangConfig().getString("prefix", "[plsDonate]"));
+        // 1. Save to Database
+        plugin.getStorageManager().createDonationRequest(txId, amount, player.getName(), isSandbox);
+        plugin.getStorageManager().markTransactionUsed(txId);
 
-                    plugin.sendLangMessageList(Bukkit.getConsoleSender(), "donation-notification", p);
-                    for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                        plugin.sendLangMessageList(onlinePlayer, "donation-notification", p);
-                        plugin.playConfigSounds(onlinePlayer, "sound-effects.donation-received");
-                    }
-                }
+        // 2. Broadcast Notifications
+        if (plugin.getConfig().getBoolean("donate.notification", true)) {
+            Map<String, String> p = plugin.getDonationPlaceholders(player.getName(), amount, email, method, message);
+            p.put("{ID}", txId);
+            p.put("{PREFIX}", plugin.getLangConfig().getString("prefix", "[plsDonate]"));
 
-                // 2. Trigger processing system
-                if (plugin.getTriggersManager() != null) {
-                    plugin.getTriggersManager().processDonation(player.getName(), amount, formattedAmount, message, method, txId);
-                }
-
-                Map<String, String> fpP = new HashMap<>();
-                fpP.put("{PREFIX}", plugin.getLangConfig().getString("prefix", "[plsDonate]"));
-                player.sendMessage(plugin.parseMessage(plugin.getLangConfig().getString("fake-donation-processed", "{PREFIX} <green>Fake donation form successfully processed!</green>"), fpP));
-                return;
+            plugin.sendLangMessageList(Bukkit.getConsoleSender(), "donation-notification", p);
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                plugin.sendLangMessageList(onlinePlayer, "donation-notification", p);
+                plugin.playConfigSounds(onlinePlayer, "sound-effects.donation-received");
+            }
         }
 
+        // 3. Trigger processing system
+        if (plugin.getTriggersManager() != null) {
+            plugin.getTriggersManager().processDonation(player.getName(), amount, formattedAmount, message, method, txId);
+        }
+
+        Map<String, String> fpP = new HashMap<>();
+        fpP.put("{PREFIX}", plugin.getLangConfig().getString("prefix", "[plsDonate]"));
+        String langKey = isSandbox ? "fake-donation-processed" : "push-donation-processed";
+        String defaultMsg = isSandbox ? "{PREFIX} <green>Fake donation form successfully processed!</green>" : "{PREFIX} <green>Donation form successfully pushed!</green>";
+        player.sendMessage(plugin.parseMessage(plugin.getLangConfig().getString(langKey, defaultMsg), fpP));
+    }
+
+    private void processBedrockDonation(Player player, double amount, String email, String method, String message) {
         // Sound: donation-processed
         plugin.playConfigSounds(player, "sound-effects.donation-processed");
         
@@ -110,6 +119,9 @@ public class BedrockFormHandler {
 
         plugin.getDonationPlatform().createDonation(player.getName(), email, amount, method, message).thenAccept(response -> {
             if (response.success()) {
+                // Log request to ledger
+                plugin.getStorageManager().createDonationRequest(response.transactionId(), amount, player.getName(), false);
+
                 // Send Email to Bedrock Player
                 plugin.getEmailManager().sendPaymentEmail(
                         player.getName(), 

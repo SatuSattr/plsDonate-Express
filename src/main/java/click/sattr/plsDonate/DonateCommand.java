@@ -194,7 +194,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             processDonation(player, amount, email, method, messageStr, plugin);
         } else {
             if (plugin.getBedrockFormHandler() != null && plugin.getConfig().getBoolean("bedrock-support", false) && plugin.getBedrockFormHandler().isBedrockPlayer(player)) {
-                plugin.getBedrockFormHandler().sendConfirmationForm(player, amount, email, method, messageStr, false);
+                plugin.getBedrockFormHandler().sendConfirmationForm(player, amount, email, method, messageStr, false, false);
                 return true;
             }
 
@@ -248,7 +248,8 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             if (response.success()) {
                 // Log request to ledger to prevent replay
                 if (response.transactionId() != null) {
-                    plugin.getStorageManager().createDonationRequest(response.transactionId(), amount, player.getName());
+                    plugin.getStorageManager().createDonationRequest(response.transactionId(), amount, player.getName(), false);
+
                 }
 
                 // Send Email to Bedrock Player

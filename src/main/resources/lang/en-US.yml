@@ -76,8 +76,10 @@ donation-help:
 
 # General / System Messages
 command-only-players: "{PREFIX} <red>Only players can execute this command.</red>"
-fake-donation-triggered: "{PREFIX} <green>Fake donation successfully triggered!</green>"
+fake-donation-triggered: "{PREFIX} <green>Fake donation successfully triggered (Sandbox Mode)!</green>"
+push-donation-triggered: "{PREFIX} <green>Donation successfully pushed (Live Mode)!</green>"
 fake-donation-processed: "{PREFIX} <green>Fake donation form successfully processed!</green>"
+push-donation-processed: "{PREFIX} <green>Donation form successfully pushed!</green>"
 donation-processing: "{PREFIX} <gray>Processing your donation form... Please check your email shortly!</gray>"
 donation-email-sent: "{PREFIX} <green>A payment link has been sent to your email!</green>"
 api-error: "{PREFIX} <red>API Error: {ERROR}</red>"
