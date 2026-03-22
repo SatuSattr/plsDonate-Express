@@ -3,6 +3,7 @@ package click.sattr.plsDonate.util;
 import click.sattr.plsDonate.PlsDonate;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -27,6 +28,10 @@ public final class MessageUtils {
 
     public static Component parseMessage(String string) {
         return MiniMessage.miniMessage().deserialize(string);
+    }
+
+    public static String toLegacy(String miniMessage) {
+        return LegacyComponentSerializer.legacySection().serialize(parseMessage(miniMessage));
     }
 
     public static void sendLangMessage(CommandSender sender, PlsDonate plugin, String path, Map<String, String> placeholders) {

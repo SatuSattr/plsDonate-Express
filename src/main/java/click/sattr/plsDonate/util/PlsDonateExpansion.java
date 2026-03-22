@@ -56,9 +56,11 @@ public class PlsDonateExpansion extends PlaceholderExpansion {
                 case "milestone_percent":
                     double percent = (current / target) * 100;
                     return String.format("%.1f", Math.min(percent, 100.0));
+                case "milestone_title":
+                    return MessageUtils.toLegacy(plugin.getConfig().getString(Constants.CONF_MILESTONE_TITLE, "Goal"));
                 case "milestone_bar":
                     double pBar = (current / target) * 100;
-                    return createProgressBar(Math.min(pBar, 100.0));
+                    return MessageUtils.toLegacy(createProgressBar(Math.min(pBar, 100.0)));
                 case "milestone_remaining":
                     double remaining = target - current;
                     return MessageUtils.formatIndonesianNumber(Math.max(remaining, 0));
@@ -119,9 +121,9 @@ public class PlsDonateExpansion extends PlaceholderExpansion {
     private String createProgressBar(double percentage) {
         int bars = 10;
         int filled = (int) (percentage / 10);
-        StringBuilder sb = new StringBuilder("&a");
+        StringBuilder sb = new StringBuilder("<green>");
         for (int i = 0; i < filled; i++) sb.append("■");
-        sb.append("&7");
+        sb.append("<gray>");
         for (int i = filled; i < bars; i++) sb.append("■");
         return sb.toString();
     }
