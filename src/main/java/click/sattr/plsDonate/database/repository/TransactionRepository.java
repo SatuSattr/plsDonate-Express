@@ -24,7 +24,7 @@ public class TransactionRepository {
 
     public void createDonationRequest(String txId, double amount, String name, boolean isSandbox) {
         CompletableFuture.runAsync(() -> {
-            String sql = "INSERT OR IGNORE INTO transactions (id, amount, donor_name, checksum, status, timestamp, is_sandbox) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT OR IGNORE INTO transactions (tx_id, amount, donor_name, checksum, status, timestamp, is_sandbox) VALUES (?, ?, ?, ?, ?, ?, ?)";
             try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, txId);
                 ps.setDouble(2, amount);
@@ -41,7 +41,7 @@ public class TransactionRepository {
     }
 
     public boolean isTransactionValid(String txId, double amount, String name) {
-        String sql = "SELECT status, checksum FROM transactions WHERE id = ?";
+        String sql = "SELECT status, checksum FROM transactions WHERE tx_id = ?";
         try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, txId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -62,7 +62,7 @@ public class TransactionRepository {
 
     public void markTransactionUsed(String txId) {
         CompletableFuture.runAsync(() -> {
-            String sql = "UPDATE transactions SET status = 'COMPLETED', completed_at = ? WHERE id = ?";
+            String sql = "UPDATE transactions SET status = 'COMPLETED', completed_at = ? WHERE tx_id = ?";
             try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setLong(1, System.currentTimeMillis() / 1000L);
                 ps.setString(2, txId);
@@ -112,6 +112,94 @@ public class TransactionRepository {
         return 0;
     }
 
+    public List<TransactionRecord> getTransactions(int limit, int offset) {
+        List<TransactionRecord> records = new ArrayList<>();
+        String sql = "SELECT * FROM transactions ORDER BY id DESC LIMIT ? OFFSET ?";
+        try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            ps.setInt(2, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(mapResultSetToRecord(rs));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to fetch transactions: " + e.getMessage());
+        }
+        return records;
+    }
+
+    public int getTransactionsCount() {
+        String sql = "SELECT COUNT(*) FROM transactions";
+        try (Connection conn = databaseManager.getConnection(); Statement s = conn.createStatement(); ResultSet rs = s.executeQuery(sql)) {
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to count transactions: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public TransactionRecord getTransactionById(int id) {
+        String sql = "SELECT * FROM transactions WHERE id = ?";
+        try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapResultSetToRecord(rs);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to fetch transaction by id: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public boolean deleteTransaction(int id) {
+        String sql = "DELETE FROM transactions WHERE id = ?";
+        try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to delete transaction: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateTransactionStatus(int id, String status) {
+        String sql = "UPDATE transactions SET status = ?, completed_at = ? WHERE id = ?";
+        try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setLong(2, "COMPLETED".equalsIgnoreCase(status) ? System.currentTimeMillis() / 1000L : 0);
+            ps.setInt(3, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to update transaction status: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public void clearTransactions(String player) {
+        String sql = player.equalsIgnoreCase("all") ? "DELETE FROM transactions" : "DELETE FROM transactions WHERE donor_name = ?";
+        try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (!player.equalsIgnoreCase("all")) ps.setString(1, player);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to clear transactions: " + e.getMessage());
+        }
+    }
+
+    private TransactionRecord mapResultSetToRecord(ResultSet rs) throws SQLException {
+        return new TransactionRecord(
+                rs.getInt("id"),
+                rs.getString("tx_id"),
+                rs.getDouble("amount"),
+                rs.getString("donor_name"),
+                rs.getString("checksum"),
+                rs.getString("status"),
+                rs.getLong("timestamp"),
+                rs.getLong("completed_at"),
+                rs.getInt("is_sandbox") == 1
+        );
+    }
+
     public double getTotalDonations() {
         String sql = "SELECT SUM(amount) FROM transactions WHERE status = 'COMPLETED' AND is_sandbox = 0";
         try (Connection conn = databaseManager.getConnection();
@@ -127,7 +215,7 @@ public class TransactionRepository {
     }
 
     public boolean isSandboxTransaction(String txId) {
-        String sql = "SELECT is_sandbox FROM transactions WHERE id = ?";
+        String sql = "SELECT is_sandbox FROM transactions WHERE tx_id = ?";
         try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, txId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -201,4 +289,5 @@ public class TransactionRepository {
     }
 
     public record LeaderboardEntry(String name, double amount, String amountFormatted) {}
+    public record TransactionRecord(int id, String txId, double amount, String donorName, String checksum, String status, long timestamp, long completedAt, boolean isSandbox) {}
 }

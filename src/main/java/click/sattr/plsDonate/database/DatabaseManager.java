@@ -46,7 +46,8 @@ public class DatabaseManager {
         try (Connection conn = getConnection(); Statement s = conn.createStatement()) {
             // Transactions Table
             s.execute("CREATE TABLE IF NOT EXISTS transactions (" +
-                    "id TEXT PRIMARY KEY, " +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "tx_id TEXT UNIQUE, " +
                     "amount REAL, " +
                     "donor_name TEXT, " +
                     "checksum TEXT, " +

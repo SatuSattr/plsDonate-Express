@@ -55,6 +55,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn leaderboard <gray>- Show top donators", p));
             sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn milestone <gray>- Show donation goal", p));
             if (sender.hasPermission(Constants.PERM_ADMIN)) {
+                sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn transaction <gray>- Manage transactions (CRUD)", p));
                 sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn fakedonate <amount> <email> <method> [msg] <gray>- Simulate a sandbox donation (Hidden from stats)", p));
                 sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn pushdonate <amount> <email> <method> [msg] <gray>- Simulate a real donation (Included in stats)", p));
                 sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn reload <gray>- Reload configuration", p));
@@ -77,6 +78,72 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
 
         if (args[0].equalsIgnoreCase("milestone")) {
             displayMilestone(sender);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("transaction") && sender.hasPermission(Constants.PERM_ADMIN)) {
+            if (args.length == 1) {
+                sender.sendMessage(MessageUtils.parseMessage("<gray>------ <gold>Transaction Management <gray>------", null));
+                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction list [page]", null));
+                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction info <id>", null));
+                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction add <player> <amount> [method]", null));
+                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction delete <id>", null));
+                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction setstatus <id> <status>", null));
+                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction clear <player|all>", null));
+                sender.sendMessage(MessageUtils.parseMessage("<gray>----------------------------", null));
+                return true;
+            }
+
+            String sub = args[1].toLowerCase();
+            switch (sub) {
+                case "list":
+                    int page = 1;
+                    if (args.length >= 3) {
+                        try { page = Integer.parseInt(args[2]); if (page < 1) page = 1; } catch (NumberFormatException ignored) {}
+                    }
+                    displayTransactionList(sender, page);
+                    break;
+                case "info":
+                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction info <id>", null)); return true; }
+                    try { displayTransactionInfo(sender, Integer.parseInt(args[2])); } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid ID.", null)); }
+                    break;
+                case "add":
+                    if (args.length < 4) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction add <player> <amount> [method]", null)); return true; }
+                    String pName = args[2];
+                    double amt;
+                    try { amt = Double.parseDouble(args[3]); } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid amount.", null)); return true; }
+                    String mtd = args.length >= 5 ? args[4] : "MANUAL";
+                    String manualTxId = "MANUAL-" + System.currentTimeMillis();
+                    plugin.getDonationService().fulfillDonation(pName, amt, "manual@internal", mtd, "Manual entry by admin", manualTxId, false);
+                    sender.sendMessage(MessageUtils.parseMessage("<green>Transaction added successfully!", null));
+                    break;
+                case "delete":
+                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction delete <id>", null)); return true; }
+                    try {
+                        int id = Integer.parseInt(args[2]);
+                        if (plugin.getTransactionRepository().deleteTransaction(id)) sender.sendMessage(MessageUtils.parseMessage("<green>Transaction #" + id + " deleted.", null));
+                        else sender.sendMessage(MessageUtils.parseMessage("<red>Transaction not found.", null));
+                    } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid ID.", null)); }
+                    break;
+                case "setstatus":
+                    if (args.length < 4) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction setstatus <id> <status>", null)); return true; }
+                    try {
+                        int id = Integer.parseInt(args[2]);
+                        String status = args[3].toUpperCase();
+                        if (plugin.getTransactionRepository().updateTransactionStatus(id, status)) sender.sendMessage(MessageUtils.parseMessage("<green>Status of #" + id + " updated to " + status + ".", null));
+                        else sender.sendMessage(MessageUtils.parseMessage("<red>Transaction not found.", null));
+                    } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid ID.", null)); }
+                    break;
+                case "clear":
+                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction clear <player|all>", null)); return true; }
+                    String target = args[2];
+                    plugin.getTransactionRepository().clearTransactions(target);
+                    sender.sendMessage(MessageUtils.parseMessage("<green>Cleared transactions for: " + target, null));
+                    break;
+                default:
+                    sender.sendMessage(MessageUtils.parseMessage("<red>Unknown sub-command.", null));
+                    break;
+            }
             return true;
         }
 
@@ -240,6 +307,56 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void displayTransactionList(CommandSender sender, int page) {
+        int limit = 10;
+        int offset = (page - 1) * limit;
+        List<TransactionRepository.TransactionRecord> records = plugin.getTransactionRepository().getTransactions(limit, offset);
+        int totalCount = plugin.getTransactionRepository().getTransactionsCount();
+        int totalPages = (int) Math.ceil((double) totalCount / limit);
+
+        sender.sendMessage(MessageUtils.parseMessage("<gray>------ <gold>Transaction List (Page " + page + "/" + totalPages + ") <gray>------", null));
+        if (records.isEmpty()) {
+            sender.sendMessage(MessageUtils.parseMessage("<gray>No transactions found.", null));
+        } else {
+            for (TransactionRepository.TransactionRecord record : records) {
+                String color = record.status().equalsIgnoreCase("COMPLETED") ? "<green>" : (record.status().equalsIgnoreCase("PENDING") ? "<yellow>" : "<red>");
+                String msg = "<gray>#<white><click:run_command:\"/pdn transaction info " + record.id() + "\"><hover:show_text:\"<gray>Click for details\">" + record.id() + "</hover></click> <gray>| <white>" + record.donorName() + " <gray>| <green>" + MessageUtils.formatAmount(plugin, record.amount()) + " <gray>| " + color + record.status();
+                sender.sendMessage(MessageUtils.parseMessage(msg, null));
+            }
+        }
+
+        if (page < totalPages) {
+            String footer = "<gray>----------------------------";
+            String nextBtn = " <yellow><click:run_command:\"/pdn transaction list " + (page + 1) + "\"><hover:show_text:\"<gray>Click for next page\">[Next Page »]</hover></click>";
+            sender.sendMessage(MessageUtils.parseMessage(footer + nextBtn, null));
+        } else {
+            sender.sendMessage(MessageUtils.parseMessage("<gray>----------------------------", null));
+        }
+    }
+
+    private void displayTransactionInfo(CommandSender sender, int id) {
+        TransactionRepository.TransactionRecord r = plugin.getTransactionRepository().getTransactionById(id);
+        if (r == null) {
+            sender.sendMessage(MessageUtils.parseMessage("<red>Transaction not found.", null));
+            return;
+        }
+
+        sender.sendMessage(MessageUtils.parseMessage("<gray>------ <gold>Transaction Info: #" + r.id() + " <gray>------", null));
+        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>TX-ID: <yellow>" + r.txId(), null));
+        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Donor: <yellow>" + r.donorName(), null));
+        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Amount: <green>" + MessageUtils.formatAmount(plugin, r.amount()), null));
+        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Status: " + (r.status().equalsIgnoreCase("COMPLETED") ? "<green>" : "<yellow>") + r.status(), null));
+        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Type: " + (r.isSandbox() ? "<red>SANDBOX" : "<green>LIVE"), null));
+        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Date: <gray>" + formatDate(r.timestamp()), null));
+        if (r.completedAt() > 0) sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Completed: <gray>" + formatDate(r.completedAt()), null));
+        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Checksum: <dark_gray>" + r.checksum(), null));
+        sender.sendMessage(MessageUtils.parseMessage("<gray>----------------------------", null));
+    }
+
+    private String formatDate(long timestamp) {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(timestamp * 1000L));
+    }
+
     private void displayMilestone(CommandSender sender) {
         if (!plugin.getConfig().getBoolean(Constants.CONF_MILESTONE_ENABLED, true)) {
             sender.sendMessage(MessageUtils.parseMessage("<red>Milestone feature is currently disabled in config.yml.", new HashMap<>()));
@@ -320,11 +437,31 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             if ("reload".startsWith(sub) && sender.hasPermission(Constants.PERM_ADMIN)) completions.add("reload");
             if ("leaderboard".startsWith(sub)) completions.add("leaderboard");
             if ("milestone".startsWith(sub)) completions.add("milestone");
+            if ("transaction".startsWith(sub) && sender.hasPermission(Constants.PERM_ADMIN)) completions.add("transaction");
             if ("help".startsWith(sub)) completions.add("help");
         } else if (args.length == 2 && args[0].equalsIgnoreCase("leaderboard")) {
             completions.add("1");
             completions.add("2");
             completions.add("3");
+        } else if (args.length >= 2 && args[0].equalsIgnoreCase("transaction") && sender.hasPermission(Constants.PERM_ADMIN)) {
+            if (args.length == 2) {
+                String sub = args[1].toLowerCase();
+                List<String> subs = List.of("list", "info", "add", "delete", "setstatus", "clear");
+                for (String s : subs) if (s.startsWith(sub)) completions.add(s);
+            } else if (args.length == 3) {
+                String sub = args[2].toLowerCase();
+                if (args[1].equalsIgnoreCase("setstatus") || args[1].equalsIgnoreCase("delete") || args[1].equalsIgnoreCase("info")) {
+                    completions.add("[id]");
+                } else if (args[1].equalsIgnoreCase("clear")) {
+                    completions.add("all");
+                    for (Player p : Bukkit.getOnlinePlayers()) if (p.getName().toLowerCase().startsWith(sub)) completions.add(p.getName());
+                } else if (args[1].equalsIgnoreCase("add")) {
+                    for (Player p : Bukkit.getOnlinePlayers()) if (p.getName().toLowerCase().startsWith(sub)) completions.add(p.getName());
+                }
+            } else if (args.length == 4 && args[1].equalsIgnoreCase("setstatus")) {
+                List<String> stats = List.of("PENDING", "COMPLETED", "VOID");
+                for (String s : stats) if (s.toLowerCase().startsWith(args[3].toLowerCase())) completions.add(s);
+            }
         } else if (args.length > 1 && (args[0].equalsIgnoreCase("fakedonate") || args[0].equalsIgnoreCase("pushdonate")) && sender.hasPermission(Constants.PERM_ADMIN)) {
             if (args.length == 2) {
                 String sub = args[1].toLowerCase();
