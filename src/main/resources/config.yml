@@ -11,6 +11,14 @@ language: "en-US"
 format:
   # The locale used for number formatting (e.g., id-ID for Indonesia, en-US for USA).
   # This determines the decimal and thousand separators.
+  # Common Locales:
+  # - id-ID : 1.000.000 (Indonesian)
+  # - en-US : 1,000,000 (US English)
+  # - en-GB : 1,000,000 (UK English)
+  # - de-DE : 1.000.000 (German)
+  # - fr-FR : 1 000 000 (French)
+  # - es-ES : 1.000.000 (Spanish)
+  # - ja-JP : 1,000,000 (Japanese)
   locale: "id-ID"
   
   # The currency symbol displayed with the amount.
