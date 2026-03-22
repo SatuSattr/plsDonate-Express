@@ -172,7 +172,7 @@ public class EmailManager {
                 // Last ditch effort: try the default payment.html if they specified a non-existent file
                 try (InputStream defaultIs = plugin.getResource("templates/payment.html")) {
                     if (defaultIs == null) {
-                        return "<p>Hi <b>{PLAYER}</b>,</p><p>Please pay <b>Rp{AMOUNT_FORMATTED}</b> here: <a href=\"{LINK}\">{LINK}</a></p>";
+                        return "<p>Hi <b>{PLAYER}</b>,</p><p>Please pay <b>{AMOUNT_FORMATTED}</b> here: <a href=\"{LINK}\">{LINK}</a></p>";
                     }
                     return new String(defaultIs.readAllBytes(), StandardCharsets.UTF_8);
                 }

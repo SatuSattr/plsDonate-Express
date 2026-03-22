@@ -91,9 +91,9 @@ triggers:
     enabled: false
     conditions: []
     commands:
-      - 'minecraft:tellraw @a {"text":"Thank you ","color":"green","extra":[{"text":"{player}","color":"aqua"},{"text":" for donating ","color":"green"},{"text":"Rp{amount_formatted}","color":"yellow"},{"text":"!","color":"green"}]}'
+      # - 'minecraft:tellraw @a {"text":"Thank you ","color":"green","extra":[{"text":"{player}","color":"aqua"},{"text":" for donating ","color":"green"},{"text":"{amount_formatted}","color":"yellow"},{"text":"!","color":"green"}]}'
 
-  # Example 2: Scaling math rewards (Give 1 diamond per Rp1,000)
+  # Example 2: Scaling math rewards (Give 1 diamond per 1,000 unit)
   # Uses 'floor' so 1500 only gives 1 diamond. Checks if online to give items!
   diamonds_per_k:
     enabled: false
