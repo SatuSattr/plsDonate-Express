@@ -83,18 +83,23 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
 
         if (args[0].equalsIgnoreCase("transaction") && sender.hasPermission(Constants.PERM_ADMIN)) {
             if (args.length == 1) {
-                sender.sendMessage(MessageUtils.parseMessage("<gray>------ <gold>Transaction Management <gray>------", null));
-                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction list [page]", null));
-                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction info <id>", null));
-                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction add <player> <amount> [method]", null));
-                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction delete <id>", null));
-                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction setstatus <id> <status>", null));
-                sender.sendMessage(MessageUtils.parseMessage("  <yellow>/pdn transaction clear <player|all>", null));
-                sender.sendMessage(MessageUtils.parseMessage("<gray>----------------------------", null));
+                Map<String, String> p = new HashMap<>();
+                p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-header", "<gray>------ <gold>Transaction Management <gray>------"), p));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-list", "  <yellow>/pdn transaction list [page] <gray>- List transactions"), p));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-info", "  <yellow>/pdn transaction info <id> <gray>- Detailed info"), p));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-add", "  <yellow>/pdn transaction add <player> <amount> [method] <gray>- Manual add"), p));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-delete", "  <yellow>/pdn transaction delete <id> <gray>- Delete record"), p));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-setstatus", "  <yellow>/pdn transaction setstatus <id> <status> <gray>- Force status"), p));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-clear", "  <yellow>/pdn transaction clear <player|all> <gray>- Mass delete"), p));
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-help-footer", "<gray>----------------------------"), p));
                 return true;
             }
 
             String sub = args[1].toLowerCase();
+            Map<String, String> p = new HashMap<>();
+            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+
             switch (sub) {
                 case "list":
                     int page = 1;
@@ -104,44 +109,50 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
                     displayTransactionList(sender, page);
                     break;
                 case "info":
-                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction info <id>", null)); return true; }
-                    try { displayTransactionInfo(sender, Integer.parseInt(args[2])); } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid ID.", null)); }
+                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-usage", "{PREFIX} <red>Invalid usage."), p)); return true; }
+                    try { displayTransactionInfo(sender, Integer.parseInt(args[2])); } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-invalid-id", "{PREFIX} <red>Invalid ID."), p)); }
                     break;
                 case "add":
-                    if (args.length < 4) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction add <player> <amount> [method]", null)); return true; }
+                    if (args.length < 4) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-usage", "{PREFIX} <red>Invalid usage."), p)); return true; }
                     String pName = args[2];
                     double amt;
-                    try { amt = Double.parseDouble(args[3]); } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid amount.", null)); return true; }
+                    try { amt = Double.parseDouble(args[3]); } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-invalid-amount", "{PREFIX} <red>Invalid amount."), p)); return true; }
                     String mtd = args.length >= 5 ? args[4] : "MANUAL";
                     String manualTxId = "MANUAL-" + System.currentTimeMillis();
                     plugin.getDonationService().fulfillDonation(pName, amt, "manual@internal", mtd, "Manual entry by admin", manualTxId, false);
-                    sender.sendMessage(MessageUtils.parseMessage("<green>Transaction added successfully!", null));
+                    sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-added", "{PREFIX} <green>Transaction added successfully!"), p));
                     break;
                 case "delete":
-                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction delete <id>", null)); return true; }
+                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-usage", "{PREFIX} <red>Invalid usage."), p)); return true; }
                     try {
                         int id = Integer.parseInt(args[2]);
-                        if (plugin.getTransactionRepository().deleteTransaction(id)) sender.sendMessage(MessageUtils.parseMessage("<green>Transaction #" + id + " deleted.", null));
-                        else sender.sendMessage(MessageUtils.parseMessage("<red>Transaction not found.", null));
-                    } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid ID.", null)); }
+                        if (plugin.getTransactionRepository().deleteTransaction(id)) {
+                            p.put(Constants.ID, String.valueOf(id));
+                            sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-deleted", "{PREFIX} <green>Transaction #{ID} deleted."), p));
+                        } else sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-not-found", "{PREFIX} <red>Transaction not found."), p));
+                    } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-invalid-id", "{PREFIX} <red>Invalid ID."), p)); }
                     break;
                 case "setstatus":
-                    if (args.length < 4) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction setstatus <id> <status>", null)); return true; }
+                    if (args.length < 4) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-usage", "{PREFIX} <red>Invalid usage."), p)); return true; }
                     try {
                         int id = Integer.parseInt(args[2]);
                         String status = args[3].toUpperCase();
-                        if (plugin.getTransactionRepository().updateTransactionStatus(id, status)) sender.sendMessage(MessageUtils.parseMessage("<green>Status of #" + id + " updated to " + status + ".", null));
-                        else sender.sendMessage(MessageUtils.parseMessage("<red>Transaction not found.", null));
-                    } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage("<red>Invalid ID.", null)); }
+                        if (plugin.getTransactionRepository().updateTransactionStatus(id, status)) {
+                            p.put(Constants.ID, String.valueOf(id));
+                            p.put("{STATUS}", status);
+                            sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-status-updated", "{PREFIX} <green>Status of #{ID} updated to {STATUS}."), p));
+                        } else sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-not-found", "{PREFIX} <red>Transaction not found."), p));
+                    } catch (NumberFormatException e) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-invalid-id", "{PREFIX} <red>Invalid ID."), p)); }
                     break;
                 case "clear":
-                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage("<red>Usage: /pdn transaction clear <player|all>", null)); return true; }
+                    if (args.length < 3) { sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-usage", "{PREFIX} <red>Invalid usage."), p)); return true; }
                     String target = args[2];
                     plugin.getTransactionRepository().clearTransactions(target);
-                    sender.sendMessage(MessageUtils.parseMessage("<green>Cleared transactions for: " + target, null));
+                    p.put("{TARGET}", target);
+                    sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-cleared", "{PREFIX} <green>Cleared transactions for: {TARGET}"), p));
                     break;
                 default:
-                    sender.sendMessage(MessageUtils.parseMessage("<red>Unknown sub-command.", null));
+                    sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-usage", "{PREFIX} <red>Invalid usage."), p));
                     break;
             }
             return true;
@@ -314,43 +325,69 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
         int totalCount = plugin.getTransactionRepository().getTransactionsCount();
         int totalPages = (int) Math.ceil((double) totalCount / limit);
 
-        sender.sendMessage(MessageUtils.parseMessage("<gray>------ <gold>Transaction List (Page " + page + "/" + totalPages + ") <gray>------", null));
+        Map<String, String> p = new HashMap<>();
+        p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+        p.put("{PAGE}", String.valueOf(page));
+        p.put("{TOTAL_PAGES}", String.valueOf(totalPages));
+
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-list-header", "<gray>------ <gold>Transaction List (Page {PAGE}/{TOTAL_PAGES}) <gray>------"), p));
         if (records.isEmpty()) {
-            sender.sendMessage(MessageUtils.parseMessage("<gray>No transactions found.", null));
+            sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-list-empty", "<gray>No transactions found."), p));
         } else {
             for (TransactionRepository.TransactionRecord record : records) {
                 String color = record.status().equalsIgnoreCase("COMPLETED") ? "<green>" : (record.status().equalsIgnoreCase("PENDING") ? "<yellow>" : "<red>");
-                String msg = "<gray>#<white><click:run_command:\"/pdn transaction info " + record.id() + "\"><hover:show_text:\"<gray>Click for details\">" + record.id() + "</hover></click> <gray>| <white>" + record.donorName() + " <gray>| <green>" + MessageUtils.formatAmount(plugin, record.amount()) + " <gray>| " + color + record.status();
-                sender.sendMessage(MessageUtils.parseMessage(msg, null));
+                Map<String, String> rp = new HashMap<>(p);
+                rp.put(Constants.ID, String.valueOf(record.id()));
+                rp.put("{NAME}", record.donorName());
+                rp.put(Constants.AMOUNT_FORMATTED, MessageUtils.formatAmount(plugin, record.amount()));
+                rp.put("{STATUS_COLORED}", color + record.status());
+                
+                sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-list-format", "<gray>#{ID} | {NAME} | Rp{AMOUNT_FORMATTED} | {STATUS_COLORED}"), rp));
             }
         }
 
         if (page < totalPages) {
-            String footer = "<gray>----------------------------";
-            String nextBtn = " <yellow><click:run_command:\"/pdn transaction list " + (page + 1) + "\"><hover:show_text:\"<gray>Click for next page\">[Next Page »]</hover></click>";
-            sender.sendMessage(MessageUtils.parseMessage(footer + nextBtn, null));
+            String footer = plugin.getLangConfig().getString("transaction-list-footer", "<gray>----------------------------");
+            Map<String, String> nextP = new HashMap<>(p);
+            nextP.put("{NEXT_PAGE}", String.valueOf(page + 1));
+            String nextBtn = plugin.getLangConfig().getString("transaction-list-next-btn", " [Next Page »]");
+            sender.sendMessage(MessageUtils.parseMessage(footer + nextBtn, nextP));
         } else {
-            sender.sendMessage(MessageUtils.parseMessage("<gray>----------------------------", null));
+            sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-list-footer", "<gray>----------------------------"), p));
         }
     }
 
     private void displayTransactionInfo(CommandSender sender, int id) {
         TransactionRepository.TransactionRecord r = plugin.getTransactionRepository().getTransactionById(id);
         if (r == null) {
-            sender.sendMessage(MessageUtils.parseMessage("<red>Transaction not found.", null));
+            Map<String, String> p = new HashMap<>();
+            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+            sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-not-found", "<red>Transaction not found."), p));
             return;
         }
 
-        sender.sendMessage(MessageUtils.parseMessage("<gray>------ <gold>Transaction Info: #" + r.id() + " <gray>------", null));
-        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>TX-ID: <yellow>" + r.txId(), null));
-        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Donor: <yellow>" + r.donorName(), null));
-        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Amount: <green>" + MessageUtils.formatAmount(plugin, r.amount()), null));
-        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Status: " + (r.status().equalsIgnoreCase("COMPLETED") ? "<green>" : "<yellow>") + r.status(), null));
-        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Type: " + (r.isSandbox() ? "<red>SANDBOX" : "<green>LIVE"), null));
-        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Date: <gray>" + formatDate(r.timestamp()), null));
-        if (r.completedAt() > 0) sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Completed: <gray>" + formatDate(r.completedAt()), null));
-        sender.sendMessage(MessageUtils.parseMessage(" <gray>» <white>Checksum: <dark_gray>" + r.checksum(), null));
-        sender.sendMessage(MessageUtils.parseMessage("<gray>----------------------------", null));
+        Map<String, String> p = new HashMap<>();
+        p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+        p.put(Constants.ID, String.valueOf(r.id()));
+        p.put("{TX_ID}", r.txId());
+        p.put("{NAME}", r.donorName());
+        p.put(Constants.AMOUNT_FORMATTED, MessageUtils.formatAmount(plugin, r.amount()));
+        p.put("{STATUS_COLORED}", (r.status().equalsIgnoreCase("COMPLETED") ? "<green>" : "<yellow>") + r.status());
+        p.put("{TYPE_COLORED}", (r.isSandbox() ? "<red>SANDBOX" : "<green>LIVE"));
+        p.put("{DATE}", formatDate(r.timestamp()));
+        p.put("{COMPLETED_AT}", r.completedAt() > 0 ? formatDate(r.completedAt()) : "-");
+        p.put("{CHECKSUM}", r.checksum());
+
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-header", "<gray>------ <gold>Transaction Info: #{ID} <gray>------"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-txid", " <gray>» <white>TX-ID: <yellow>{TX_ID}"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-donor", " <gray>» <white>Donor: <yellow>{NAME}"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-amount", " <gray>» <white>Amount: <green>Rp{AMOUNT_FORMATTED}"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-status", " <gray>» <white>Status: {STATUS_COLORED}"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-type", " <gray>» <white>Type: {TYPE_COLORED}"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-date", " <gray>» <white>Date: <gray>{DATE}"), p));
+        if (r.completedAt() > 0) sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-completed", " <gray>» <white>Completed: <gray>{COMPLETED_AT}"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-checksum", " <gray>» <white>Checksum: <dark_gray>{CHECKSUM}"), p));
+        sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-info-footer", "<gray>----------------------------"), p));
     }
 
     private String formatDate(long timestamp) {
