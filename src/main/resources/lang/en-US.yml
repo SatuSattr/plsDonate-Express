@@ -101,6 +101,7 @@ milestone-percentage: '  <white>Percentage: <aqua>{PERCENT}%'
 milestone-footer: '<br><gray><st>                                              '
 
 # Transaction Management Messages
+# Available Placeholders (General): {PREFIX}
 transaction-help-header: '<gray><st>          <reset> <green>plsDonate <gold><u>Transaction Help</u> <gray><st>          '
 transaction-help-list: '  <yellow>/pdn transaction list [page] <gray>- List transactions'
 transaction-help-info: '  <yellow>/pdn transaction info <id> <gray>- Detailed info'
@@ -110,12 +111,14 @@ transaction-help-setstatus: '  <yellow>/pdn transaction setstatus <id> <status> 
 transaction-help-clear: '  <yellow>/pdn transaction clear <player|all> <gray>- Mass delete'
 transaction-help-footer: '<gray><st>                                                    '
 
+# Available Placeholders: {PAGE}, {TOTAL_PAGES}, {NEXT_PAGE}, {ID}, {NAME}, {AMOUNT_FORMATTED}, {STATUS_COLORED}
 transaction-list-header: '<gray><st>          <reset> <green>plsDonate <yellow><u>Transactions (Page {PAGE}/{TOTAL_PAGES})</u> <gray><st>          '
 transaction-list-format: '<gray>#<white><click:run_command:"/pdn transaction info {ID}"><hover:show_text:"<gray>Click for details">{ID}</hover></click> <gray>| <white>{NAME} <gray>| <green>Rp{AMOUNT_FORMATTED} <gray>| {STATUS_COLORED}'
 transaction-list-empty: '<gray>No transactions found in database.'
 transaction-list-footer: '<gray><st>                                                    '
 transaction-list-next-btn: ' <yellow><click:run_command:"/pdn transaction list {NEXT_PAGE}"><hover:show_text:"<gray>Click for next page">[Next Page »]</hover></click>'
 
+# Available Placeholders: {ID}, {TX_ID}, {NAME}, {AMOUNT_FORMATTED}, {STATUS_COLORED}, {TYPE_COLORED}, {DATE}, {COMPLETED_AT}, {CHECKSUM}
 transaction-info-header: '<gray><st>          <reset> <green>plsDonate <gold><u>Transaction Details: #{ID}</u> <gray><st>          '
 transaction-info-txid: ' <gray>» <white>TX-ID: <yellow>{TX_ID}'
 transaction-info-donor: ' <gray>» <white>Donor: <yellow>{NAME}'
@@ -127,6 +130,7 @@ transaction-info-completed: ' <gray>» <white>Completed: <gray>{COMPLETED_AT}'
 transaction-info-checksum: ' <gray>» <white>Checksum: <dark_gray>{CHECKSUM}'
 transaction-info-footer: '<gray><st>                                                    '
 
+# Available Placeholders (Success/Error): {ID}, {STATUS}, {TARGET}
 transaction-added: '{PREFIX} <green>Transaction added successfully!'
 transaction-deleted: '{PREFIX} <green>Transaction #{ID} has been deleted.'
 transaction-status-updated: '{PREFIX} <green>Status of #{ID} updated to <yellow>{STATUS}.'
