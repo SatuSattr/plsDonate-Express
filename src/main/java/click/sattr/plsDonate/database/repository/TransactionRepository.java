@@ -3,6 +3,7 @@ package click.sattr.plsDonate.database.repository;
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.DatabaseManager;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -35,7 +36,7 @@ public class TransactionRepository {
                 ps.setInt(7, isSandbox ? 1 : 0);
                 ps.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().severe("Failed to create donation request in DB: " + e.getMessage());
+                PluginLogger.severe("Failed to create donation request in DB: " + e.getMessage());
             }
         });
     }
@@ -55,7 +56,7 @@ public class TransactionRepository {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error validating transaction " + txId + ": " + e.getMessage());
+            PluginLogger.severe("Error validating transaction " + txId + ": " + e.getMessage());
         }
         return false;
     }
@@ -65,7 +66,7 @@ public class TransactionRepository {
             try (Connection conn = databaseManager.getConnection()) {
                 claimPending(conn, txId);
             } catch (SQLException e) {
-                plugin.getLogger().severe("Failed to mark transaction " + txId + " as used: " + e.getMessage());
+                PluginLogger.severe("Failed to mark transaction " + txId + " as used: " + e.getMessage());
             }
         });
     }
@@ -79,7 +80,7 @@ public class TransactionRepository {
         try (Connection conn = databaseManager.getConnection()) {
             return claimPending(conn, txId) == 1;
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to claim transaction " + txId + ": " + e.getMessage());
+            PluginLogger.severe("Failed to claim transaction " + txId + ": " + e.getMessage());
             return false;
         }
     }
@@ -117,7 +118,7 @@ public class TransactionRepository {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch leaderboard: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch leaderboard: " + e.getMessage());
         }
         return entries;
     }
@@ -131,7 +132,7 @@ public class TransactionRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch leaderboard count: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch leaderboard count: " + e.getMessage());
         }
         return 0;
     }
@@ -148,7 +149,7 @@ public class TransactionRepository {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch transactions: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch transactions: " + e.getMessage());
         }
         return records;
     }
@@ -158,7 +159,7 @@ public class TransactionRepository {
         try (Connection conn = databaseManager.getConnection(); Statement s = conn.createStatement(); ResultSet rs = s.executeQuery(sql)) {
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to count transactions: " + e.getMessage());
+            PluginLogger.severe("Failed to count transactions: " + e.getMessage());
         }
         return 0;
     }
@@ -171,7 +172,7 @@ public class TransactionRepository {
                 if (rs.next()) return mapResultSetToRecord(rs);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch transaction by id: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch transaction by id: " + e.getMessage());
         }
         return null;
     }
@@ -182,7 +183,7 @@ public class TransactionRepository {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to delete transaction: " + e.getMessage());
+            PluginLogger.severe("Failed to delete transaction: " + e.getMessage());
             return false;
         }
     }
@@ -195,7 +196,7 @@ public class TransactionRepository {
             ps.setInt(3, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to update transaction status: " + e.getMessage());
+            PluginLogger.severe("Failed to update transaction status: " + e.getMessage());
             return false;
         }
     }
@@ -206,7 +207,7 @@ public class TransactionRepository {
             if (!player.equalsIgnoreCase("all")) ps.setString(1, player);
             ps.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to clear transactions: " + e.getMessage());
+            PluginLogger.severe("Failed to clear transactions: " + e.getMessage());
         }
     }
 
@@ -233,7 +234,7 @@ public class TransactionRepository {
                 return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch total donations: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch total donations: " + e.getMessage());
         }
         return 0;
     }
@@ -248,7 +249,7 @@ public class TransactionRepository {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error checking sandbox status for transaction " + txId + ": " + e.getMessage());
+            PluginLogger.severe("Error checking sandbox status for transaction " + txId + ": " + e.getMessage());
         }
         return false;
     }
@@ -261,7 +262,7 @@ public class TransactionRepository {
                 if (rs.next()) return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to get player total: " + e.getMessage());
+            PluginLogger.severe("Failed to get player total: " + e.getMessage());
         }
         return 0;
     }
@@ -277,7 +278,7 @@ public class TransactionRepository {
                 rank++;
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to get player rank: " + e.getMessage());
+            PluginLogger.severe("Failed to get player rank: " + e.getMessage());
         }
         return 0;
     }
@@ -288,7 +289,7 @@ public class TransactionRepository {
         try (Connection conn = databaseManager.getConnection()) {
             return queryPlayerHistory(conn, playerName, limit, offset);
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch player history: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch player history: " + e.getMessage());
             return new ArrayList<>();
         }
     }
@@ -297,7 +298,7 @@ public class TransactionRepository {
         try (Connection conn = databaseManager.getConnection()) {
             return queryPlayerHistoryCount(conn, playerName);
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to count player history: " + e.getMessage());
+            PluginLogger.severe("Failed to count player history: " + e.getMessage());
             return 0;
         }
     }
@@ -344,7 +345,7 @@ public class TransactionRepository {
                 return new LeaderboardEntry(rs.getString("donor_name"), amount, MessageUtils.formatAmount(plugin, amount));
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to get recent donation: " + e.getMessage());
+            PluginLogger.severe("Failed to get recent donation: " + e.getMessage());
         }
         return null;
     }

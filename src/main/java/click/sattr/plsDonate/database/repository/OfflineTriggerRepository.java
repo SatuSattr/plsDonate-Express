@@ -2,6 +2,7 @@ package click.sattr.plsDonate.database.repository;
 
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.DatabaseManager;
+import click.sattr.plsDonate.util.PluginLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,7 +30,7 @@ public class OfflineTriggerRepository {
                 ps.setString(2, command);
                 ps.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().severe("Failed to insert offline trigger for " + player + ": " + e.getMessage());
+                PluginLogger.severe("Failed to insert offline trigger for " + player + ": " + e.getMessage());
             }
         });
     }
@@ -55,7 +56,7 @@ public class OfflineTriggerRepository {
             }
             conn.commit();
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error retrieving/removing offline triggers for " + player + ": " + e.getMessage());
+            PluginLogger.severe("Error retrieving/removing offline triggers for " + player + ": " + e.getMessage());
         }
         return commands;
     }

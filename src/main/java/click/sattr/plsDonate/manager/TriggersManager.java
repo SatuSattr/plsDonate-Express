@@ -2,6 +2,7 @@ package click.sattr.plsDonate.manager;
 
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.util.ExpressionEvaluator;
+import click.sattr.plsDonate.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -78,7 +79,7 @@ public class TriggersManager implements Listener {
 
                     if (requireOnline && !isOnline) {
                         plugin.getOfflineTriggerRepository().insertOfflineTrigger(donorName, processedCommand);
-                        plugin.getLogger().info("Saved offline trigger command for " + donorName + " (Waiting for login).");
+                        PluginLogger.info("Saved offline trigger command for " + donorName + " (Waiting for login).");
                     } else {
                         executeCommand(processedCommand);
                     }
@@ -123,7 +124,7 @@ public class TriggersManager implements Listener {
                 }
                 matcher.appendReplacement(result, resultStr);
             } catch (Exception e) {
-                plugin.getLogger().warning("Failed to evaluate math {" + mathExpr + "} in command: " + command);
+                PluginLogger.warn("Failed to evaluate math {" + mathExpr + "} in command: " + command);
                 matcher.appendReplacement(result, "0"); // Default fallback
             }
         }
@@ -134,7 +135,7 @@ public class TriggersManager implements Listener {
     private void executeCommand(String command) {
         Bukkit.getScheduler().runTask(plugin, () -> {
             Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
-            plugin.getLogger().info("Executed trigger command: " + command);
+            PluginLogger.info("Executed trigger command: " + command);
         });
     }
 

@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import click.sattr.plsDonate.util.ProtocolVersionUtil;
+import click.sattr.plsDonate.util.PluginLogger;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
@@ -76,13 +78,14 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
-            cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+            // Cooldown will be set when form is confirmed, not when opened
             plugin.getBedrockFormHandler().openDonationForm(player);
             return true;
         }
 
-        // Java donation dialog (no args, Java player, server 1.21.6+)
-        if (args.length == 0 && plugin.getJavaDialogHandler() != null) {
+        // Java donation dialog (no args, Java player, client 1.21.6+)
+        if (args.length == 0 && plugin.getJavaDialogHandler() != null 
+                && ProtocolVersionUtil.supportsDialogs(player)) {
             if (!player.hasPermission(Constants.PERM_DONATE_REQUEST)) {
                 MessageUtils.sendLangMessage(player, plugin, "no-permission", null);
                 return true;
@@ -100,7 +103,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
             }
-            cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+            // Cooldown will be set when dialog is confirmed, not when opened
             plugin.getJavaDialogHandler().openDonationForm(player);
             return true;
         }
@@ -188,6 +191,8 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
 
             if (request != null && request.playerUuid().equals(player.getUniqueId())) {
                 pendingRequests.remove(hash);
+                // Set cooldown here — confirmation was accepted (dialog "Yes" or chat confirm)
+                cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
                 processDonation(player, request.amount(), request.email(), request.method(), request.message(), plugin);
                 return true;
             } else {
@@ -317,16 +322,16 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Set Cooldown
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
-
         // 5. Confirmation System
         boolean requireConfirmation = plugin.getConfig().getBoolean(Constants.CONF_DONATE_CONFIRMATION, true);
 
         if (!requireConfirmation) {
+            // No confirmation required — set cooldown immediately and process
+            cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
             processDonation(player, amount, email, method, messageStr, plugin);
         } else {
             if (plugin.getBedrockFormHandler() != null && plugin.getBedrockFormHandler().isBedrockPlayer(player)) {
+                // Cooldown set when Bedrock confirmation form is accepted
                 plugin.getBedrockFormHandler().sendConfirmationForm(player, amount, email, method, messageStr, false, false);
                 return true;
             }
@@ -350,8 +355,9 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
             p.put(Constants.COMMAND, "/" + label + " " + hash);
 
-            // If Java dialog is supported, skip chat confirmation and show dialog instead
-            if (plugin.getJavaDialogHandler() != null) {
+            // If Java dialog is supported for this specific client, show dialog; otherwise chat fallback
+            // Cooldown set when dialog/chat confirmation is accepted
+            if (plugin.getJavaDialogHandler() != null && ProtocolVersionUtil.supportsDialogs(player)) {
                 MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-confirmation");
                 plugin.getJavaDialogHandler().openConfirmationDialog(player, hash, amount, email, method, messageStr);
             } else {
@@ -374,7 +380,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             }
             return hashtext;
         } catch (NoSuchAlgorithmException e) {
-            plugin.getLogger().severe("MD5 algorithm not found!");
+            PluginLogger.severe("MD5 algorithm not found!");
             return null;
         }
     }
@@ -569,5 +575,13 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    /**
+     * Sets the cooldown for a player. Called by confirmation handlers
+     * (BedrockFormHandler, JavaDialogHandler) when a donation is confirmed.
+     */
+    public void setCooldown(UUID playerUuid) {
+        cooldowns.put(playerUuid, System.currentTimeMillis());
     }
 }

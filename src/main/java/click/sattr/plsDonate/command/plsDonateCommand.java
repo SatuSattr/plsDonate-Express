@@ -4,6 +4,7 @@ import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.repository.TransactionRepository;
 import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -40,6 +41,12 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // Admin-only command - require permission
+        if (!sender.hasPermission(Constants.PERM_ADMIN_HELP)) {
+            MessageUtils.sendLangMessage(sender, plugin, "no-permission", null);
+            return true;
+        }
+
         if (args.length == 0) {
             Map<String, String> p = new HashMap<>();
             p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
@@ -354,8 +361,15 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
                 p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
                 p.put(Constants.COMMAND, "/pdn " + sub + " " + hash);
 
-                MessageUtils.sendLangMessageList(player, plugin, "donation-confirmation-java", p);
-                MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-confirmation");
+                // Java admin with dialog support — show native dialog
+                if (plugin.getJavaDialogHandler() != null && click.sattr.plsDonate.util.ProtocolVersionUtil.supportsDialogs(player)) {
+                    plugin.getJavaDialogHandler().openAdminConfirmationDialog(player, hash, amount, email, method, message, isSandbox, sub);
+                    MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-confirmation");
+                } else {
+                    // Chat fallback for older clients or when dialog is unavailable
+                    MessageUtils.sendLangMessageList(player, plugin, "donation-confirmation-java", p);
+                    MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-confirmation");
+                }
             } else {
                 executeSimulatedDonation(player, amount, email, method, message, isSandbox);
             }
@@ -507,7 +521,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             }
             return hashtext;
         } catch (NoSuchAlgorithmException e) {
-            plugin.getLogger().severe("MD5 algorithm not found!");
+            PluginLogger.severe("MD5 algorithm not found!");
             return null;
         }
     }
@@ -536,6 +550,10 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // Admin-only command — hide completions from players without permission
+        if (!sender.hasPermission(Constants.PERM_ADMIN_HELP)) {
+            return new ArrayList<>();
+        }
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             String sub = args[0].toLowerCase();

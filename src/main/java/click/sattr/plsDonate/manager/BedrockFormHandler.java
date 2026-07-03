@@ -140,6 +140,11 @@ public class BedrockFormHandler {
     private void processBedrockDonation(Player player, double amount, String email, String method, String message) {
         // Sound: donation-processed
         MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-processed");
+
+        // Set cooldown here — Bedrock confirmation form was accepted
+        if (plugin.getDonateCommand() != null) {
+            plugin.getDonateCommand().setCooldown(player.getUniqueId());
+        }
         
         Map<String, String> prcP = new HashMap<>();
         prcP.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));

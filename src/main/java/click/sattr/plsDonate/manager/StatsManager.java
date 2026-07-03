@@ -4,6 +4,7 @@ import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.repository.TransactionRepository.LeaderboardEntry;
 import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 import org.bukkit.command.CommandSender;
 
 import java.util.Collections;
@@ -54,7 +55,7 @@ public class StatsManager {
             this.cachedDonorCount = count;
             this.cachedTotal = total;
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to refresh stats cache: " + e.getMessage());
+            PluginLogger.warn("Failed to refresh stats cache: " + e.getMessage());
         }
     }
 

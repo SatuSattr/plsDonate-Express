@@ -3,6 +3,7 @@ package click.sattr.plsDonate.platform.tako;
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.platform.DonationPlatform;
 import click.sattr.plsDonate.util.Constants;
+import click.sattr.plsDonate.util.PluginLogger;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -99,7 +100,7 @@ public class TakoPlatform implements DonationPlatform {
                     }
                 })
                 .exceptionally(ex -> {
-                    plugin.getLogger().severe("API Request Failed: " + ex.getMessage());
+                    PluginLogger.severe("API Request Failed: " + ex.getMessage());
                     return new DonationResponse(false, "Network error: " + ex.getMessage(), null, null);
                 });
     }
