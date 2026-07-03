@@ -33,10 +33,3 @@ jobs:
       - name: Build and test
         run: mvn -B -nsu -Dmaven.wagon.http.retryHandler.count=3 clean package
 
-      - name: Upload plugin JAR
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: plsDonate-jar
-          path: target/plsDonate-*.jar
-          if-no-files-found: error
