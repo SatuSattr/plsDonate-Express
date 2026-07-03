@@ -51,6 +51,7 @@ public class DatabaseManager {
                     "tx_id TEXT UNIQUE, " +
                     "amount REAL, " +
                     "donor_name TEXT, " +
+                    "donor_uuid TEXT, " +
                     "checksum TEXT, " +
                     "status TEXT, " +
                     "timestamp INTEGER, " +

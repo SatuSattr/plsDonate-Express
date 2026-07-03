@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class StatsManager {
 
-    private static final int CACHE_SIZE = 20;
+    private static final int CACHE_SIZE = 50;
     private static final int PAGE_SIZE = 10;
 
     private final PlsDonate plugin;

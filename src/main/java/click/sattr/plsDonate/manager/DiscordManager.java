@@ -68,7 +68,7 @@ public class DiscordManager {
     public DiscordManager(PlsDonate plugin) {
         this.plugin = plugin;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(15))
                 .build();
     }
 
@@ -388,7 +388,7 @@ public class DiscordManager {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(15))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
 

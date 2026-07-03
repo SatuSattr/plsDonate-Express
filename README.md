@@ -61,17 +61,27 @@ Players create donation requests directly in-game. Payment links are automatical
 <table>
 <tr>
 <th align="center"> Bedrock Edition</th>
-<th align="center"> Java Edition</th>
+<th align="center"> Java Edition (1.21.6+)</th>
 </tr>
 <tr>
 <td align="center">
-<img src="https://i.imgur.com/XIRBBWM.png" width="350" alt="Bedrock Screenshot">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_form_bedrock.png" width="400" alt="Bedrock Screenshot">
 </td>
 <td align="center">
-<img src="https://i.imgur.com/BR7kEDc.png" width="350" alt="Java Screenshot">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_form_java.png" width="400" alt="Java Screenshot">
+</td>
+</tr>
+<tr>
+<td align="center">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_confirmation_bedrock.png" width="400" alt="Bedrock Screenshot">
+</td>
+<td align="center">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_confirmation_java.png" width="400" alt="Java Screenshot">
 </td>
 </tr>
 </table>
+
+> Java player with version below 1.21.6 will fallback to Interactive Chat Dialog
 
 ## Requirements
 

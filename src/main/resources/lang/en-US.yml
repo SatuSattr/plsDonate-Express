@@ -79,7 +79,7 @@ donation-confirmation-bedrock:
 
 # Available Placeholder: {PREFIX}
 donation-help:
-  - "<gray><st>          <reset> <green>plsDonate <u><yellow>/donation</u> <green>Guide <gray><st>          "
+  - "<gray><st>          <reset> <green>plsDonate <u><yellow>/donate</u> <green>Guide <gray><st>          "
   - " "
   - "    <gold>/donate <amount> <email> <method> [messages]"
   - "    <gray>Methods »"

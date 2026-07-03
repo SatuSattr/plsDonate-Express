@@ -103,11 +103,6 @@ public class EmailManager {
         
         if (secure) {
             props.put("mail.smtp.ssl.enable", "true");
-            
-            // Allow all SSL certs to mimic old behavior
-            com.sun.mail.util.MailSSLSocketFactory sf = new com.sun.mail.util.MailSSLSocketFactory();
-            sf.setTrustAllHosts(true);
-            props.put("mail.smtp.ssl.socketFactory", sf);
         } else {
             props.put("mail.smtp.starttls.enable", "true");
         }

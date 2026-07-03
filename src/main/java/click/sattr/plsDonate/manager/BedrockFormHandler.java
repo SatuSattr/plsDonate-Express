@@ -72,6 +72,9 @@ public class BedrockFormHandler {
 
     public void sendConfirmationForm(Player player, double amount, String email, String method, String message, boolean isSimulation, boolean isSandbox) {
         String title = plugin.getLangConfig().getString("donation-confirmation-bedrock.title", "Confirm Donation");
+        if (isSimulation) {
+            title += isSandbox ? " (fake)" : " (push)";
+        }
         String btnYes = plugin.getLangConfig().getString("donation-confirmation-bedrock.btn-yes", "Yes");
         String btnNo = plugin.getLangConfig().getString("donation-confirmation-bedrock.btn-no", "No");
 
@@ -128,7 +131,7 @@ public class BedrockFormHandler {
     private void processSimulatedDonation(Player player, double amount, String email, String method, String message, boolean isSandbox) {
         String txId = (isSandbox ? "FAKETX-" : "PUSHTX-") + System.currentTimeMillis();
 
-        plugin.getDonationService().fulfillDonation(player.getName(), amount, email, method, message, txId, isSandbox);
+        plugin.getDonationService().fulfillSimulatedDonation(player.getName(), player.getUniqueId().toString(), amount, email, method, message, txId, isSandbox);
 
         Map<String, String> fpP = new HashMap<>();
         fpP.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
@@ -154,7 +157,7 @@ public class BedrockFormHandler {
             if (response.success()) {
                 // Log request to ledger
                 if (response.transactionId() != null) {
-                    plugin.getTransactionRepository().createDonationRequest(response.transactionId(), amount, player.getName(), false);
+                    plugin.getTransactionRepository().createDonationRequest(response.transactionId(), amount, player.getName(), player.getUniqueId().toString(), false);
                 }
 
                 // Send Email to Bedrock Player

@@ -225,20 +225,19 @@ public class JavaDialogHandler {
                                                 String email, String method, String message,
                                                 boolean isSandbox, String subCommand) {
         try {
-            String typeLabel = isSandbox ? "Sandbox" : "Live";
+            String titleSuffix = isSandbox ? " (fake)" : " (push)";
             Component title = MessageUtils.parseMessage(
-                    plugin.getLangConfig().getString("admin-donation-confirmation-java-dialog.title",
-                            "Admin Donation Confirmation"));
+                    plugin.getLangConfig().getString("donation-confirmation-java-dialog.title",
+                            "Donation Confirmation") + titleSuffix);
 
             // Build header text with donation details
             Map<String, String> p = MessageUtils.getDonationPlaceholders(
                     plugin, amount, player.getName(), email, method, message);
             p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-            p.put("{TYPE}", typeLabel);
 
             String headerTemplate = plugin.getLangConfig().getString(
-                    "admin-donation-confirmation-java-dialog.header-text",
-                    "<yellow>Type: {TYPE}\n<white>Amount: <yellow>{AMOUNT_FORMATTED}\n<white>Email: <yellow>{EMAIL}\n<white>Method: <yellow>{METHOD}\n<white>Message: <gray>{MESSAGE}");
+                    "donation-confirmation-java-dialog.header-text",
+                    "<gray>Amount\n<green>Rp{AMOUNT_FORMATTED}\n\n<gray>Email\n<reset>{EMAIL}\n\n<gray>Method\n{METHOD_COLORED}\n\n<gray>Message\n<reset>{MESSAGE}");
             String headerText = headerTemplate;
             for (Map.Entry<String, String> entry : p.entrySet()) {
                 headerText = headerText.replace(entry.getKey(), entry.getValue());
@@ -246,9 +245,9 @@ public class JavaDialogHandler {
             Component headerComponent = MessageUtils.parseMessage(headerText);
 
             Component yesLabel = MessageUtils.parseMessage(
-                    plugin.getLangConfig().getString("admin-donation-confirmation-java-dialog.yes-label", "Confirm"));
+                    plugin.getLangConfig().getString("donation-confirmation-java-dialog.yes-label", "<green>Yes"));
             Component noLabel = MessageUtils.parseMessage(
-                    plugin.getLangConfig().getString("admin-donation-confirmation-java-dialog.no-label", "Cancel"));
+                    plugin.getLangConfig().getString("donation-confirmation-java-dialog.no-label", "Cancel"));
 
             final String confirmCommand = "pdn " + subCommand + " " + hash;
 

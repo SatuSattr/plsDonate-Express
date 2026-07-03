@@ -17,28 +17,37 @@ public class DonationService {
     }
 
     /**
-     * Processes a donation (real or simulated).
-     *
-     * @param playerName The name of the player associated with the donation.
-     * @param amount     The donation amount.
-     * @param email      The donor's email.
-     * @param method     The payment method used.
-     * @param message    The donation message.
-     * @param transactionId The unique transaction ID.
-     * @param isSandbox  Whether the donation is in sandbox mode.
+     * Processes a fulfilled donation (webhook path).
+     * The DB row was already created by the player's initial /donate request,
+     * and {@link click.sattr.plsDonate.webhook.WebhookManager} already claimed
+     * it PENDING → COMPLETED. This method only handles notifications.
      */
     public void fulfillDonation(String playerName, double amount, String email, String method, String message, String transactionId, boolean isSandbox) {
+        if (plugin.getStatsManager() != null) {
+            plugin.getStatsManager().refresh();
+        }
+        notifyDonation(playerName, amount, email, method, message, transactionId);
+    }
+
+    /**
+     * Processes a simulated donation (admin fakedonate/pushdonate path).
+     * Creates the DB row, marks it COMPLETED, refreshes stats, and sends notifications.
+     */
+    public void fulfillSimulatedDonation(String playerName, String donorUuid, double amount, String email, String method, String message, String transactionId, boolean isSandbox) {
         String formattedAmount = MessageUtils.formatAmount(plugin, amount);
 
-        // 1. Save to Database sequentially to prevent asynchronous race conditions,
-        //    then refresh the in-memory stats cache once the row is COMPLETED.
-        plugin.getTransactionRepository().createDonationRequest(transactionId, amount, playerName, isSandbox)
+        plugin.getTransactionRepository().createDonationRequest(transactionId, amount, playerName, donorUuid, isSandbox)
                 .thenCompose(v -> plugin.getTransactionRepository().markTransactionUsed(transactionId))
                 .thenRun(() -> {
                     if (plugin.getStatsManager() != null) plugin.getStatsManager().refreshSync();
                 });
 
-        // 2. Broadcast Notifications
+        notifyDonation(playerName, amount, email, method, message, transactionId);
+    }
+
+    private void notifyDonation(String playerName, double amount, String email, String method, String message, String transactionId) {
+        String formattedAmount = MessageUtils.formatAmount(plugin, amount);
+
         if (plugin.getConfig().getBoolean(Constants.CONF_DONATE_NOTIFICATION, true)) {
             Map<String, String> p = MessageUtils.getDonationPlaceholders(plugin, amount, playerName, email, method, message);
             p.put(Constants.ID, transactionId);
@@ -51,12 +60,10 @@ public class DonationService {
             }
         }
 
-        // 3. Trigger processing system
         if (plugin.getTriggersManager() != null) {
             plugin.getTriggersManager().processDonation(playerName, amount, formattedAmount, message, method, transactionId);
         }
 
-        // 4. Discord webhook notification (fires for both sandbox and live donations when enabled)
         if (plugin.getDiscordManager() != null) {
             plugin.getDiscordManager().sendDonation(playerName, amount, message, method, transactionId);
         }

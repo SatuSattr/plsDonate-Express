@@ -22,12 +22,16 @@ import click.sattr.plsDonate.webhook.WebhookManager;
 import com.tchristofferson.configupdater.ConfigUpdater;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -248,6 +252,10 @@ public final class PlsDonate extends JavaPlugin implements Listener {
     }
 
     private void checkImportantConfigs() {
+        checkImportantConfigs(null);
+    }
+
+    private void checkImportantConfigs(@Nullable CommandSender sender) {
         Map<String, String> p = new HashMap<>();
         p.put(Constants.PREFIX, langConfig.getString("prefix", Constants.DEFAULT_PREFIX));
 
@@ -285,6 +293,71 @@ public final class PlsDonate extends JavaPlugin implements Listener {
                 Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage("{PREFIX} <red>[!] All SMTP hosts are using default/blank credentials! Payment emails will not work.</red>", p));
             }
         }
+
+        validateConfigValues(sender);
+    }
+
+    /**
+     * Validates all numeric config values to reject negative/invalid values.
+     * When called during reload by a player, errors are sent to both the player
+     * and PluginLogger. Otherwise only PluginLogger is used.
+     */
+    private void validateConfigValues(@Nullable CommandSender sender) {
+        Player player = (sender instanceof Player) ? (Player) sender : null;
+        int errors = 0;
+
+        errors += checkNotNegative(player, Constants.CONF_DONATE_MIN_AMOUNT, getConfig().getDouble(Constants.CONF_DONATE_MIN_AMOUNT, 1000));
+
+        double maxAmount = getConfig().getDouble(Constants.CONF_DONATE_MAX_AMOUNT, 10000000);
+        errors += checkNotNegative(player, Constants.CONF_DONATE_MAX_AMOUNT, maxAmount);
+        double minAmount = getConfig().getDouble(Constants.CONF_DONATE_MIN_AMOUNT, 1000);
+        if (minAmount >= 0 && maxAmount >= 0 && maxAmount < minAmount) {
+            String msg = "'" + Constants.CONF_DONATE_MAX_AMOUNT + "' (" + maxAmount + ") is less than '" + Constants.CONF_DONATE_MIN_AMOUNT + "' (" + minAmount + ").";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+            errors++;
+        }
+
+        errors += checkNotNegative(player, Constants.CONF_DONATE_COOLDOWN, getConfig().getInt(Constants.CONF_DONATE_COOLDOWN, 15));
+
+        int maxMsgLen = getConfig().getInt(Constants.CONF_DONATE_MAX_MESSAGE, 100);
+        if (maxMsgLen <= 0) {
+            String msg = "'" + Constants.CONF_DONATE_MAX_MESSAGE + "' is " + maxMsgLen + ". Must be > 0.";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+            errors++;
+        }
+
+        int port = getConfig().getInt(Constants.CONF_WEBHOOK_PORT, Constants.DEFAULT_WEBHOOK_PORT);
+        if (port < 1 || port > 65535) {
+            String msg = "'" + Constants.CONF_WEBHOOK_PORT + "' is " + port + ". Must be between 1 and 65535.";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+            errors++;
+        }
+
+        errors += checkNotNegative(player, Constants.CONF_MILESTONE_TARGET, getConfig().getDouble(Constants.CONF_MILESTONE_TARGET, 1000000));
+        errors += checkNotNegative(player, Constants.CONF_MILESTONE_OFFSET, getConfig().getDouble(Constants.CONF_MILESTONE_OFFSET, 0));
+
+        if (errors > 0) {
+            String msg = "Found " + errors + " invalid config value(s). Please fix them in config.yml and run /pdn reload.";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+        }
+    }
+
+    private int checkNotNegative(@Nullable Player player, String configKey, double value) {
+        if (value >= 0) return 0;
+        String msg = "'" + configKey + "' is negative (" + value + "). Must be >= 0.";
+        PluginLogger.severe(msg);
+        if (player != null) sendErrorToPlayer(player, msg);
+        return 1;
+    }
+
+    private void sendErrorToPlayer(Player player, String message) {
+        Map<String, String> p = new HashMap<>();
+        p.put(Constants.PREFIX, langConfig.getString("prefix", Constants.DEFAULT_PREFIX));
+        player.sendMessage(MessageUtils.parseMessage("{PREFIX} <red>[!] " + message + "</red>", p));
     }
 
     private void loadLanguageConfig() {
@@ -335,6 +408,10 @@ public final class PlsDonate extends JavaPlugin implements Listener {
     }
 
     public void reloadPlugin() {
+        reloadPlugin(null);
+    }
+
+    public void reloadPlugin(@Nullable CommandSender sender) {
         PluginLogger.info("Reloading plsDonate configuration...");
         if (webhookManager != null) {
             webhookManager.stop();
@@ -379,7 +456,7 @@ public final class PlsDonate extends JavaPlugin implements Listener {
             PluginLogger.severe("Failed to restart mandatory webhook listener during reload!");
         }
 
-        checkImportantConfigs();
+        checkImportantConfigs(sender);
         PluginLogger.info("plsDonate reload complete.");
     }
 

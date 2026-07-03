@@ -10,7 +10,7 @@ import org.bukkit.plugin.Plugin;
 public final class ProtocolVersionUtil {
 
     // Minecraft 1.21.6 protocol version number
-    private static final int PROTOCOL_1_21_6 = 768;
+    private static final int PROTOCOL_1_21_6 = 771;
 
     private static boolean viaVersionPresent = false;
     private static boolean initialized = false;
@@ -37,7 +37,8 @@ public final class ProtocolVersionUtil {
             try {
                 return com.viaversion.viaversion.api.Via.getAPI().getPlayerVersion(player.getUniqueId());
             } catch (Throwable t) {
-                // ViaVersion present but API call failed — fall through
+                // ViaVersion present but API call failed — assume latest protocol
+                return Integer.MAX_VALUE;
             }
         }
         // No ViaVersion: assume player protocol matches server (dialog-capable)
@@ -45,7 +46,7 @@ public final class ProtocolVersionUtil {
     }
 
     /**
-     * Returns true if this player's client supports Java Edition dialogs (1.21.6+ / protocol 768+).
+     * Returns true if this player's client supports Java Edition dialogs (1.21.6+ / protocol 771+).
      */
     public static boolean supportsDialogs(Player player) {
         return getPlayerProtocolVersion(player) >= PROTOCOL_1_21_6;

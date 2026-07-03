@@ -3,8 +3,9 @@ package click.sattr.plsDonate.command;
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.repository.TransactionRepository;
 import click.sattr.plsDonate.util.Constants;
+import click.sattr.plsDonate.util.DonationValidator;
+import click.sattr.plsDonate.util.HashUtils;
 import click.sattr.plsDonate.util.MessageUtils;
-import click.sattr.plsDonate.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -14,25 +15,19 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 
 public class plsDonateCommand implements CommandExecutor, TabCompleter {
 
     private final PlsDonate plugin;
     private final Map<String, DonationSimulationRequest> pendingRequests = new ConcurrentHashMap<>();
     private final Map<String, Long> pendingOperations = new ConcurrentHashMap<>();
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$");
-    private static final Pattern MD5_PATTERN = Pattern.compile("^[a-fA-F0-9]{32}$");
-
+    
     public plsDonateCommand(PlsDonate plugin) {
         this.plugin = plugin;
     }
@@ -276,7 +271,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             }
 
             // Check if it's a confirmation hash
-            if (args.length == 2 && MD5_PATTERN.matcher(args[1]).matches()) {
+            if (args.length == 2 && DonationValidator.MD5_PATTERN.matcher(args[1]).matches()) {
                 String hash = args[1].toLowerCase();
                 DonationSimulationRequest request = pendingRequests.get(hash);
 
@@ -301,41 +296,17 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
 
-            double amount;
-            try {
-                amount = Double.parseDouble(args[1]);
-                if (!Double.isFinite(amount)) throw new NumberFormatException("non-finite amount");
-            } catch (NumberFormatException e) {
-                Map<String, String> p = new HashMap<>();
-                p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-                player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-amount", "{PREFIX} <white>Please <red>enter a valid amount <white>using numbers only <gray>(example: 50000)"), p));
-                return true;
-            }
+            Double parsedAmount = DonationValidator.parseAmount(args[1], player, plugin);
+            if (parsedAmount == null) return true;
+            double amount = parsedAmount;
 
             String email = args[2];
-            if (!EMAIL_PATTERN.matcher(email).matches()) {
-                Map<String, String> p = new HashMap<>();
-                p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-                player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-email", "{PREFIX} <white>Please <red>provide <white>a valid email <gray>example: (your@gmail.com)"), p));
-                return true;
-            }
+            if (!DonationValidator.validateEmail(email, player, plugin)) return true;
 
             String method = args[3].toLowerCase();
-            if (!method.equals("qris") && !method.equals("gopay") && !method.equals("paypal")) {
-                Map<String, String> p = new HashMap<>();
-                p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-                player.sendMessage(MessageUtils.parseMessage("{PREFIX} <red>Invalid payment method! <yellow>Options: qris, gopay, paypal", p));
-                return true;
-            }
+            if (!DonationValidator.validateMethod(method, amount, player, plugin)) return true;
 
-            String message = "";
-            if (args.length > 4) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 4; i < args.length; i++) {
-                    sb.append(args[i]).append(" ");
-                }
-                message = sb.toString().trim();
-            }
+            String message = DonationValidator.buildMessage(args, 4);
 
             if (plugin.getConfig().getBoolean(Constants.CONF_DONATE_CONFIRMATION, true)) {
                 if (plugin.getBedrockFormHandler() != null && plugin.getBedrockFormHandler().isBedrockPlayer(player)) {
@@ -346,7 +317,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
                 // Generate MD5 Hash
                 long timestamp = System.currentTimeMillis();
                 String rawString = player.getUniqueId().toString() + "-" + timestamp + "-" + amount + "-" + email + "-" + method + "-" + isSandbox;
-                String hash = md5(rawString);
+                String hash = HashUtils.md5(rawString);
 
                 if (hash == null) {
                     MessageUtils.sendLangMessage(player, plugin, "general-error", null);
@@ -367,7 +338,22 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
                     MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-confirmation");
                 } else {
                     // Chat fallback for older clients or when dialog is unavailable
-                    MessageUtils.sendLangMessageList(player, plugin, "donation-confirmation-java", p);
+                    String titleSuffix = isSandbox ? " <dark_gray>(fake)</dark_gray>" : " <dark_gray>(push)</dark_gray>";
+                    List<String> lines = plugin.getLangConfig().getStringList("donation-confirmation-java");
+                    String prefix = plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX);
+                    boolean titleModified = false;
+                    for (String line : lines) {
+                        String processedLine = line;
+                        for (Map.Entry<String, String> entry : p.entrySet()) {
+                            processedLine = processedLine.replace(entry.getKey(), entry.getValue());
+                        }
+                        processedLine = processedLine.replace(Constants.PREFIX, prefix);
+                        if (!titleModified && processedLine.contains("Donation")) {
+                            processedLine = processedLine.replace("Donation", "Donation" + titleSuffix);
+                            titleModified = true;
+                        }
+                        player.sendMessage(MessageUtils.parseMessage(processedLine));
+                    }
                     MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-confirmation");
                 }
             } else {
@@ -411,7 +397,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
                 MessageUtils.sendLangMessage(sender, plugin, "no-permission", null);
                 return true;
             }
-            plugin.reloadPlugin();
+            plugin.reloadPlugin(sender);
             MessageUtils.sendLangMessage(sender, plugin, "reload-success", null);
             return true;
         }
@@ -501,29 +487,13 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
     private void executeSimulatedDonation(Player player, double amount, String email, String method, String message, boolean isSandbox) {
         String txId = (isSandbox ? "FAKETX-" : "PUSHTX-") + System.currentTimeMillis();
 
-        plugin.getDonationService().fulfillDonation(player.getName(), amount, email, method, message, txId, isSandbox);
+        plugin.getDonationService().fulfillSimulatedDonation(player.getName(), player.getUniqueId().toString(), amount, email, method, message, txId, isSandbox);
 
         Map<String, String> fP = new HashMap<>();
         fP.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
         String langKey = isSandbox ? "fake-donation-triggered" : "push-donation-triggered";
         String defaultMsg = isSandbox ? "{PREFIX} <green>Fake donation successfully triggered (Sandbox Mode)!</green>" : "{PREFIX} <green>Donation successfully pushed (Live Mode)!</green>";
         player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString(langKey, defaultMsg), fP));
-    }
-
-    private String md5(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] messageDigest = md.digest(input.getBytes());
-            BigInteger no = new BigInteger(1, messageDigest);
-            String hashtext = no.toString(16);
-            while (hashtext.length() < 32) {
-                hashtext = "0" + hashtext;
-            }
-            return hashtext;
-        } catch (NoSuchAlgorithmException e) {
-            PluginLogger.severe("MD5 algorithm not found!");
-            return null;
-        }
     }
 
     public void clearPendingRequests(UUID uuid) {
