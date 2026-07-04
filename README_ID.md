@@ -57,22 +57,32 @@ Pemain membuat permintaan donasi langsung di dalam game. Tautan pembayaran secar
 
 ## Dukungan Cross-Platform
 
-**plsDonate** menawarkan pengalaman native untuk Java dan Bedrock. Pemain Bedrock yang terhubung melalui [GeyserMC](https://geysermc.org/) dan [Floodgate](https://geysermc.org/wiki/floodgate/) akan secara otomatis menerima formulir interaktif yang intuitif, sementara pemain Java menggunakan antarmuka berbasis (chat) interaktif.
+**plsDonate** menawarkan pengalaman native untuk Java dan Bedrock. Pemain Bedrock yang terhubung melalui [GeyserMC](https://geysermc.org/) dan [Floodgate](https://geysermc.org/wiki/floodgate/) akan secara otomatis menerima formulir interaktif yang intuitif, sementara pemain Java (1.21.6+) menggunakan dialog native.
 
 <table>
 <tr>
 <th align="center"> Edisi Bedrock</th>
-<th align="center"> Edisi Java</th>
+<th align="center"> Edisi Java (1.21.6+)</th>
 </tr>
 <tr>
 <td align="center">
-<img src="https://i.imgur.com/XIRBBWM.png" width="350" alt="Bedrock Screenshot">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_form_bedrock.png" width="400" alt="Bedrock Screenshot">
 </td>
 <td align="center">
-<img src="https://i.imgur.com/BR7kEDc.png" width="350" alt="Java Screenshot">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_form_java.png" width="400" alt="Java Screenshot">
+</td>
+</tr>
+<tr>
+<td align="center">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_confirmation_bedrock.png" width="400" alt="Bedrock Screenshot">
+</td>
+<td align="center">
+<img src="https://raw.githubusercontent.com/wiki/SatuSattr/plsDonate/images/donation_confirmation_java.png" width="400" alt="Java Screenshot">
 </td>
 </tr>
 </table>
+
+> Pemain Java dengan versi dibawah 1.21.6 akan menggunakan Interactive Chat Dialog
 
 ## Persyaratan
 
