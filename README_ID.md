@@ -116,8 +116,8 @@ Pemain membuat permintaan donasi langsung di dalam game. Tautan pembayaran secar
 <td><code>true</code></td>
 </tr>
 <tr>
-<td><code>/pdn leaderboard [page]</code></td>
-<td>Menampilkan donatur teratas (alias: <code>/pdn top</code>) <em>(admin)</em></td>
+<td><code>/pdn top [page]</code></td>
+<td>Menampilkan donatur teratas <em>(admin)</em></td>
 <td><code>plsdonate.donate.top</code></td>
 <td><code>true</code></td>
 </tr>

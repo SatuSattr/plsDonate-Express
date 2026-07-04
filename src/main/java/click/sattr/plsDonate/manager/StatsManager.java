@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Keeps the leaderboard top entries and the milestone total in memory so that
- * /donate top, /pdn leaderboard and /pdn milestone don't hit the database on
+ * /donate top, /pdn top and /pdn milestone don't hit the database on
  * every invocation. Only the top {@link #CACHE_SIZE} donors are cached, so the
  * footprint stays bounded even on servers with thousands of donors. The cache is
  * refreshed whenever a donation is fulfilled, an admin edits the ledger, or the

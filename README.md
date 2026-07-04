@@ -125,8 +125,8 @@ Players create donation requests directly in-game. Payment links are automatical
 <td><code>true</code></td>
 </tr>
 <tr>
-<td><code>/pdn leaderboard [page]</code></td>
-<td>Show the top donators (alias: <code>/pdn top</code>) <em>(admin)</em></td>
+<td><code>/pdn top [page]</code></td>
+<td>Show the top donators <em>(admin)</em></td>
 <td><code>plsdonate.donate.top</code></td>
 <td><code>true</code></td>
 </tr>

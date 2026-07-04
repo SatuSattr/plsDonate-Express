@@ -55,7 +55,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
             sender.sendMessage(MessageUtils.parseMessage("<gray>------ <green>plsDonate Help <gray>------<newline>", p));
             sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn help <gray>- Show this help message", p));
-            sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn leaderboard <gray>(or <yellow>top<gray>) - Show top donators", p));
+            sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn top <gray>- Show top donators", p));
             sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn milestone <gray>- Show donation goal", p));
             if (sender.hasPermission(Constants.PERM_ADMIN_HELP)) {
                 sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn transaction <gray>- Manage transactions", p));
@@ -68,7 +68,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("top")) {
+        if (args[0].equalsIgnoreCase("top")) {
             if (!sender.hasPermission(Constants.PERM_DONATE_TOP)) {
                 MessageUtils.sendLangMessage(sender, plugin, "no-permission", null);
                 return true;
@@ -531,12 +531,11 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             if ("pushdonate".startsWith(sub) && sender.hasPermission(Constants.PERM_ADMIN_PUSHDONATE)) completions.add("pushdonate");
             if ("testdiscord".startsWith(sub) && sender.hasPermission(Constants.PERM_ADMIN_TESTDISCORD)) completions.add("testdiscord");
             if ("reload".startsWith(sub) && sender.hasPermission(Constants.PERM_ADMIN_RELOAD)) completions.add("reload");
-            if ("leaderboard".startsWith(sub) && sender.hasPermission(Constants.PERM_DONATE_TOP)) completions.add("leaderboard");
             if ("top".startsWith(sub) && sender.hasPermission(Constants.PERM_DONATE_TOP)) completions.add("top");
             if ("milestone".startsWith(sub) && sender.hasPermission(Constants.PERM_DONATE_MILESTONE)) completions.add("milestone");
             if ("transaction".startsWith(sub) && sender.hasPermission(Constants.PERM_ADMIN_TRANSACTION)) completions.add("transaction");
             if ("help".startsWith(sub)) completions.add("help");
-        } else if (args.length == 2 && (args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("top"))) {
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("top")) {
             completions.add("1");
             completions.add("2");
             completions.add("3");

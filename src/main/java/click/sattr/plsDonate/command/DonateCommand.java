@@ -102,7 +102,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
         }
 
         // Help: accept any trailing args so "/donate help foo bar" still shows help
-        if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
+        if (args[0].equalsIgnoreCase("help")) {
             if (!player.hasPermission(Constants.PERM_DONATE_HELP)) {
                 MessageUtils.sendLangMessage(player, plugin, "no-permission", null);
                 return true;
@@ -114,8 +114,8 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Leaderboard / top — viewable by regular players, served from the in-memory cache
-        if (args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("top")) {
+        // Top / leaderboard — viewable by regular players, served from the in-memory cache
+        if (args[0].equalsIgnoreCase("top")) {
             if (!player.hasPermission(Constants.PERM_DONATE_TOP)) {
                 MessageUtils.sendLangMessage(player, plugin, "no-permission", null);
                 return true;
@@ -437,7 +437,6 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             String sub = args[0].toLowerCase();
             if ("help".startsWith(sub)) completions.add("help");
             if ("top".startsWith(sub)) completions.add("top");
-            if ("leaderboard".startsWith(sub)) completions.add("leaderboard");
             if ("milestone".startsWith(sub)) completions.add("milestone");
             if ("history".startsWith(sub)) completions.add("history");
 
@@ -446,7 +445,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             for (long s : suggestions) {
                 if (String.valueOf(s).startsWith(sub)) completions.add(String.valueOf(s));
             }
-        } else if (args.length == 2 && (args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("top"))) {
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("top")) {
             String sub = args[1].toLowerCase();
             for (String pg : List.of("1", "2", "3")) {
                 if (pg.startsWith(sub)) completions.add(pg);
