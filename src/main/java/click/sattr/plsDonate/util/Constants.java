@@ -21,6 +21,9 @@ public final class Constants {
     public static final String TITLE = "{TITLE}";
     public static final String ERROR = "{ERROR}";
     public static final String TIME = "{TIME}";
+    public static final String VERSION = "{VERSION}";
+    public static final String NEW_VERSION = "{NEW_VERSION}";
+    public static final String URL = "{URL}";
 
     // Permissions — /donate (plsdonate.donate.*)
     public static final String PERM_DONATE_REQUEST = "plsdonate.donate.request";
@@ -38,6 +41,7 @@ public final class Constants {
     public static final String PERM_ADMIN_PUSHDONATE = "plsdonate.admin.pushdonate";
     public static final String PERM_ADMIN_TESTDISCORD = "plsdonate.admin.testdiscord";
     public static final String PERM_ADMIN_RELOAD = "plsdonate.admin.reload";
+    public static final String PERM_UPDATE_NOTIFY = "plsdonate.update.notify";
 
     // Configuration Paths
     public static final String CONF_WEBHOOK_PORT = "webhook.port";
