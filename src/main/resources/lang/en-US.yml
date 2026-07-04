@@ -181,7 +181,7 @@ transaction-list-header: "<gray><st>          <reset> <green>plsDonate <yellow><
 transaction-list-format: '<gray>#<white><click:run_command:"/pdn transaction info {ID}"><hover:show_text:"<gray>Click for details">{ID}</hover></click> <gray>| <white>{NAME} <gray>| <green>Rp{AMOUNT_FORMATTED} <gray>| {STATUS_COLORED}'
 transaction-list-empty: "<gray>No transactions found in database."
 transaction-list-footer: "<gray><st>                                                    "
-transaction-list-next-btn: ' <yellow><click:run_command:"/pdn transaction list {NEXT_PAGE}"><hover:show_text:"<gray>Click for next page">[Next Page »]</hover></click>'
+transaction-list-next-btn: ' <reset><yellow><click:run_command:"/pdn transaction list {NEXT_PAGE}"><hover:show_text:"<gray>Click for next page">[Next Page]</hover></click>'
 
 # Available Placeholders: {ID}, {TX_ID}, {NAME}, {AMOUNT_FORMATTED}, {STATUS_COLORED}, {TYPE_COLORED}, {DATE}, {COMPLETED_AT}, {CHECKSUM}
 transaction-info-header: "<gray><st>          <reset> <green>plsDonate <gold><u>Transaction Details: #{ID}</u> <gray><st>          "

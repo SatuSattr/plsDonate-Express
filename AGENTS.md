@@ -2,13 +2,14 @@
 
 ## Project Overview
 
-plsDonate is a Paper 1.21.6+ Minecraft Java plugin that integrates with the Indonesian donation platform **tako.id** (`TakoPlatform.java`). It allows players to request donation payment links via in-game chat commands, Java Edition native dialogs (1.21.6+), or Bedrock Edition native forms (Floodgate/Cumulus). All donation flows ultimately converge into executing a `/donate <args>` command, which calls the tako.id API to generate a payment link sent to the donor's email.
+plsDonate is a Paper 1.21+ Minecraft Java plugin that integrates with the Indonesian donation platform **tako.id** (`TakoPlatform.java`). It allows players to request donation payment links via in-game chat commands, Java Edition native dialogs (1.21.6+), or Bedrock Edition native forms (Floodgate/Cumulus). All donation flows ultimately converge into executing a `/donate <args>` command, which calls the tako.id API to generate a payment link sent to the donor's email.
 
 ## Soft Dependencies & Ecosystem
 
 These plugins are detected at runtime and adapt the donation UI accordingly:
 
 ### ViaVersion (`ProtocolVersionUtil.java`)
+
 - Detected in `PlsDonate.onEnable()` via `Bukkit.getPluginManager().getPlugin("ViaVersion")`
 - Allows per-player client protocol version detection via `com.viaversion.viaversion.api.Via.getAPI().getPlayerVersion()`
 - Used by `ProtocolVersionUtil.supportsDialogs(player)` to determine if a specific Java player's client is 1.21.6+ (protocol >= 771) and thus supports native Java dialogs
@@ -17,6 +18,7 @@ These plugins are detected at runtime and adapt the donation UI accordingly:
 - Protocol mappings: 1.21.2-1.21.3 = 768, 1.21.4 = 769, 1.21.5 = 770, **1.21.6 = 771**, 1.21.7-1.21.8 = 772
 
 ### Floodgate + GeyserMC (`BedrockFormHandler.java`)
+
 - Floodgate detected in `PlsDonate.onEnable()` via `Bukkit.getPluginManager().getPlugin("floodgate")`
 - Floodgate allows Bedrock Edition players to join a Java server without owning a Java account
 - `isBedrockPlayer(Player)` checks `FloodgateApi.getInstance().isFloodgatePlayer(player.getUniqueId())`
@@ -25,6 +27,7 @@ These plugins are detected at runtime and adapt the donation UI accordingly:
 - GeyserMC is logged but not directly used by plsDonate — only Floodgate's API matters
 
 ### UniDialog (`JavaDialogHandler.java`)
+
 - Shaded library `io.github.projectunified.unidialog.paper.PaperDialogManager`
 - Provides Java Edition 1.21.6+ native dialog API (multi-action dialogs)
 - `PaperMultiActionDialog` supports text inputs, single-option selectors, body items, header text, action buttons
@@ -32,10 +35,12 @@ These plugins are detected at runtime and adapt the donation UI accordingly:
 - `runCommand()` for static commands like `/donate <md5hash>`
 
 ### SkinsRestorer
+
 - Detected in `DiscordManager` to resolve player skin textures for Discord embed head renders
 - Provides `{PLAYER_HEAD_SKIN_RESTORER}` and `{SKIN_TEXTURE_ID_SKIN_RESTORER}` placeholders
 
 ### PlaceholderAPI
+
 - Detected in `PlsDonate.onEnable()`, registers `PlsDonateExpansion` for external use
 
 ---
@@ -51,6 +56,7 @@ The flow has **2 layers** with Layer 2 having **2 sections** (one per platform).
 #### 1. Command: `/donate <amount> <email> <method> [message]`
 
 **Validation** handled by `DonationValidator` (`DonationValidator.java`):
+
 1. **Amount**: `DonationValidator.parseAmount()` returns `Double` or sends error + null
 2. **Config range**: Checked against `donate.amount.min` and `donate.amount.max` from config (only in DonateCommand, not in admin commands)
 3. **Email**: `DonationValidator.validateEmail()` — regex + max 64 chars
@@ -63,6 +69,7 @@ The flow has **2 layers** with Layer 2 having **2 sections** (one per platform).
 **If false**: No confirmation needed. `processDonation()` called immediately, cooldown set.
 
 **If true** (default, and most common):
+
 - The plugin first checks if the player is Bedrock — if yes, delegates to `BedrockFormHandler.sendConfirmationForm()` (bypasses MD5 hash entirely — see Layer 2 Section 2 below)
 - For Java players:
   1. Generates an MD5 hash via `HashUtils.md5()` from: `playerUUID + "-" + timestamp + "-" + amount + "-" + email + "-" + method`
@@ -75,6 +82,7 @@ The flow has **2 layers** with Layer 2 having **2 sections** (one per platform).
 #### 3. Confirmation via MD5 Hash
 
 When `/donate <md5hash>` is executed (triggered by clicking Yes or via dialog action):
+
 1. Hash is looked up in `pendingRequests`
 2. Validated that the request belongs to the same player UUID
 3. Request removed from pending map (one-time use)
@@ -114,6 +122,7 @@ When `/donate <md5hash>` is executed (triggered by clicking Yes or via dialog ac
 4. When Submit is clicked, the command `/donate <amount> <email> <method> <message>` is dispatched — **this falls back to Layer 1**, which runs validation and, if confirmation is enabled, shows either a Java confirmation dialog or chat confirmation
 
 **Confirmation Dialog** (`JavaDialogHandler.openConfirmationDialog()`):
+
 - Built when Layer 1 detects confirmation is needed and player supports dialogs
 - Shows summary of donation details
 - Yes button executes `/donate <hash>` (static `runCommand`)
@@ -121,6 +130,7 @@ When `/donate <md5hash>` is executed (triggered by clicking Yes or via dialog ac
 - Same as chat confirmation, but native UI
 
 **Admin Confirmation Dialog** (`JavaDialogHandler.openAdminConfirmationDialog()`):
+
 - Uses the same lang keys as regular dialog (`donation-confirmation-java-dialog.*`)
 - Title has ` (fake)` or ` (push)` suffix appended based on `isSandbox`
 - Yes button executes `/pdn <subcommand> <hash>`
@@ -146,6 +156,7 @@ When `/donate <md5hash>` is executed (triggered by clicking Yes or via dialog ac
 5. Layer 1 runs its validation. With confirmation enabled (default), it detects the player is Bedrock and calls `BedrockFormHandler.sendConfirmationForm()` — **NOT** the MD5 hash flow
 
 **Confirmation Form** (`BedrockFormHandler.sendConfirmationForm()`):
+
 - A `SimpleForm` (non-input, just display + buttons)
 - Shows donation summary (amount, email, method, message) with Yes/No buttons
 - When `isSimulation=true`, title has ` (fake)` or ` (push)` suffix
@@ -165,27 +176,27 @@ When `/donate <md5hash>` is executed (triggered by clicking Yes or via dialog ac
 
 ### `/donate` (player-facing)
 
-| Args | Behavior |
-|------|----------|
-| no args | Opens platform-native form/dialog (if supported), else shows help |
-| `help` | Shows donation syntax guide |
-| `<amount> <email> <method> [message]` | Layer 1: validates, runs confirmation flow (chat/dialog/form), calls API |
-| `<32-char-md5-hash>` | Confirms a pending donation request, triggers API call |
-| `top [page]` / `leaderboard [page]` | Shows cached top donors (cache size 50, served from `StatsManager`) |
-| `milestone` | Shows donation goal progress |
-| `history [page]` / `history <player> [page]` | Shows donation history (looks up by UUID for own history) |
+| Args                                         | Behavior                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| no args                                      | Opens platform-native form/dialog (if supported), else shows help        |
+| `help`                                       | Shows donation syntax guide                                              |
+| `<amount> <email> <method> [message]`        | Layer 1: validates, runs confirmation flow (chat/dialog/form), calls API |
+| `<32-char-md5-hash>`                         | Confirms a pending donation request, triggers API call                   |
+| `top [page]` / `leaderboard [page]`          | Shows cached top donors (cache size 50, served from `StatsManager`)      |
+| `milestone`                                  | Shows donation goal progress                                             |
+| `history [page]` / `history <player> [page]` | Shows donation history (looks up by UUID for own history)                |
 
 ### `/pdn` / `/plsdonate` (admin)
 
-| Subcommand | Permission | Behavior |
-|------------|-----------|----------|
-| `help` | `plsdonate.admin.help` | Admin help menu |
-| `fakedonate <amount> <email> <method> [msg]` | `plsdonate.admin.fakedonate` | Simulates sandbox donation (hidden from stats). Confirmation uses same lang keys as regular with ` (fake)` suffix |
-| `pushdonate <amount> <email> <method> [msg]` | `plsdonate.admin.pushdonate` | Simulates live donation (included in stats). Confirmation uses same lang keys as regular with ` (push)` suffix |
-| `transaction list/info/delete/setstatus/clear` | `plsdonate.admin.transaction` | Full CRUD on transaction records. Delete/clear use Java chat confirmation or Bedrock forms |
-| `testdiscord` | `plsdonate.admin.testdiscord` | Sends test embed to all configured Discord webhooks |
-| `reload` | `plsdonate.admin.reload` | Reloads config, lang, platform, reinitializes webhook. Runs `validateConfigValues()` which checks all numeric values |
-| `leaderboard` / `milestone` | Same as /donate | Mirrors /donate functionality |
+| Subcommand                                     | Permission                    | Behavior                                                                                                             |
+| ---------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `help`                                         | `plsdonate.admin.help`        | Admin help menu                                                                                                      |
+| `fakedonate <amount> <email> <method> [msg]`   | `plsdonate.admin.fakedonate`  | Simulates sandbox donation (hidden from stats). Confirmation uses same lang keys as regular with ` (fake)` suffix    |
+| `pushdonate <amount> <email> <method> [msg]`   | `plsdonate.admin.pushdonate`  | Simulates live donation (included in stats). Confirmation uses same lang keys as regular with ` (push)` suffix       |
+| `transaction list/info/delete/setstatus/clear` | `plsdonate.admin.transaction` | Full CRUD on transaction records. Delete/clear use Java chat confirmation or Bedrock forms                           |
+| `testdiscord`                                  | `plsdonate.admin.testdiscord` | Sends test embed to all configured Discord webhooks                                                                  |
+| `reload`                                       | `plsdonate.admin.reload`      | Reloads config, lang, platform, reinitializes webhook. Runs `validateConfigValues()` which checks all numeric values |
+| `leaderboard` / `milestone`                    | Same as /donate               | Mirrors /donate functionality                                                                                        |
 
 ---
 
@@ -214,6 +225,7 @@ X-Tako-Signature: 738653d7d70f34019b2ac34463fa26543e72b99effc6a32d9640ea51040310
 ```
 
 Fields consumed by `TakoPlatform.parseWebhook()`:
+
 - `id` → transactionId
 - `gifterName` / `name` → donorName
 - `gifterEmail` / `email` → donorEmail
@@ -226,14 +238,18 @@ Fields consumed by `TakoPlatform.parseWebhook()`:
 ## Post-Donation Processing
 
 ### `DonationService.fulfillDonation()` (webhook path)
+
 Called only by `WebhookManager`. Does NOT perform DB operations — the row was already created by the player's initial /donate request and claimed by `WebhookManager.claimTransaction()`. Handles:
+
 1. **Stats refresh** (async)
 2. **Broadcast**: If `donate.notification` is enabled, sends donation message + sounds to all online players
 3. **Triggers**: `TriggersManager.processDonation()` evaluates trigger conditions and executes matching commands
 4. **Discord**: `DiscordManager.sendDonation()` sends customizable Discord embed to configured webhooks
 
 ### `DonationService.fulfillSimulatedDonation()` (admin path)
+
 Called by `BedrockFormHandler.processSimulatedDonation()` and `plsDonateCommand.executeSimulatedDonation()`. Handles:
+
 1. **Database**: `createDonationRequest()` → async → `markTransactionUsed()` → `StatsManager.refreshSync()`
 2. **Broadcast** + **Triggers** + **Discord** (same as fulfillDonation)
 
@@ -248,6 +264,7 @@ Called by `BedrockFormHandler.processSimulatedDonation()` and `plsDonateCommand.
 - `getMaxMessageLength()`: Platform-specific message length limit (190 for tako.id)
 
 `TakoPlatform` (the only implementation):
+
 - API base: `https://tako.id/api/gift/`
 - Sends POST with JSON body: name, email, amount, paymentMethod, message
 - Authorization: Bearer token from config
@@ -259,39 +276,44 @@ Called by `BedrockFormHandler.processSimulatedDonation()` and `plsDonateCommand.
 ## Database Schema (SQLite via HikariCP)
 
 ### `transactions` table
-| Column | Type | Notes |
-|--------|------|-------|
-| id | INTEGER | Primary key, autoincrement |
-| tx_id | TEXT | Unique, from payment platform |
-| amount | REAL | Donation amount |
-| donor_name | TEXT | Player name at time of donation |
-| donor_uuid | TEXT | Player UUID (stable identifier across name changes) |
-| checksum | TEXT | MD5(txId + amount + donorName) for integrity |
-| status | TEXT | PENDING → COMPLETED (or VOID) |
-| timestamp | INTEGER | Unix seconds |
-| completed_at | INTEGER | Unix seconds, 0 if not completed |
-| is_sandbox | INTEGER | 1 for sandbox/fake donations |
+
+| Column       | Type    | Notes                                               |
+| ------------ | ------- | --------------------------------------------------- |
+| id           | INTEGER | Primary key, autoincrement                          |
+| tx_id        | TEXT    | Unique, from payment platform                       |
+| amount       | REAL    | Donation amount                                     |
+| donor_name   | TEXT    | Player name at time of donation                     |
+| donor_uuid   | TEXT    | Player UUID (stable identifier across name changes) |
+| checksum     | TEXT    | MD5(txId + amount + donorName) for integrity        |
+| status       | TEXT    | PENDING → COMPLETED (or VOID)                       |
+| timestamp    | INTEGER | Unix seconds                                        |
+| completed_at | INTEGER | Unix seconds, 0 if not completed                    |
+| is_sandbox   | INTEGER | 1 for sandbox/fake donations                        |
 
 **UUID-based lookup**: When `donor_uuid` is available (all new transactions), history/total/rank queries match by UUID first. Old records with NULL `donor_uuid` fall back to `donor_name`. Leaderboard groups by `COALESCE(donor_uuid, donor_name)` so name changes don't split a player's total.
 
 ### `offline_triggers` table
-| Column | Type | Notes |
-|--------|------|-------|
-| id | INTEGER | Primary key, autoincrement |
-| player | TEXT | Lowercase player name |
-| command | TEXT | Command to execute on join |
+
+| Column  | Type    | Notes                      |
+| ------- | ------- | -------------------------- |
+| id      | INTEGER | Primary key, autoincrement |
+| player  | TEXT    | Lowercase player name      |
+| command | TEXT    | Command to execute on join |
 
 ---
 
 ## Utility Classes
 
 ### `HashUtils.java`
+
 Single `md5(String)` method replacing three identical implementations in `DonateCommand`, `plsDonateCommand`, and `TransactionRepository`.
 
 ### `DonationValidator.java`
+
 Consolidates donation input validation (amount parsing, email, method, message) used by both `DonateCommand` and `plsDonateCommand`. Each method both validates AND sends the error message to the player, returning boolean/null.
 
 ### `ProtocolVersionUtil.java`
+
 Per-player dialog support detection using ViaVersion API. Threshold: protocol >= 771 (Minecraft 1.21.6+). Fallback when ViaVersion API fails: `Integer.MAX_VALUE` (assumes latest).
 
 ---

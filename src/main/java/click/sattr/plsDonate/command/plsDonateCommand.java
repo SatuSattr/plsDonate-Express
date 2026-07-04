@@ -440,7 +440,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             String footer = plugin.getLangConfig().getString("transaction-list-footer", "<gray>----------------------------");
             Map<String, String> nextP = new HashMap<>(p);
             nextP.put("{NEXT_PAGE}", String.valueOf(page + 1));
-            String nextBtn = plugin.getLangConfig().getString("transaction-list-next-btn", " [Next Page »]");
+            String nextBtn = plugin.getLangConfig().getString("transaction-list-next-btn", " [Next Page]");
             sender.sendMessage(MessageUtils.parseMessage(footer + nextBtn, nextP));
         } else {
             sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-list-footer", "<gray>----------------------------"), p));

@@ -393,7 +393,6 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         }
 
         langConfig = YamlConfiguration.loadConfiguration(langFile);
-        // Plain logger here — langConfig not yet assigned, PluginLogger colored output not yet usable
         getLogger().info("Language loaded: " + langName);
     }
 
