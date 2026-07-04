@@ -18,6 +18,7 @@ import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.MessageUtils;
 import click.sattr.plsDonate.util.PluginLogger;
 import click.sattr.plsDonate.util.ProtocolVersionUtil;
+import click.sattr.plsDonate.util.UpdateChecker;
 import click.sattr.plsDonate.webhook.WebhookManager;
 import com.tchristofferson.configupdater.ConfigUpdater;
 import org.bstats.bukkit.Metrics;
@@ -28,6 +29,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -226,6 +228,11 @@ public final class PlsDonate extends JavaPlugin implements Listener {
             }
 
             checkImportantConfigs();
+
+            // Async update check — non-blocking, runs after startup
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                UpdateChecker.checkUpdate(this, null);
+            });
         });
     }
 
@@ -488,5 +495,37 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         if (pdnCommand != null) {
             pdnCommand.clearPendingRequests(event.getPlayer().getUniqueId());
         }
+    }
+
+    @EventHandler
+    public void onPlayerJoinUpdateCheck(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (!player.hasPermission(Constants.PERM_UPDATE_NOTIFY)) return;
+
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            if (!UpdateChecker.hasChecked()) return;
+
+            String latest = UpdateChecker.getLatestVersion();
+            if (latest != null && UpdateChecker.isUpdateAvailable(getPluginMeta().getVersion())) {
+                String prefix = langConfig.getString("prefix", Constants.DEFAULT_PREFIX);
+                String url = UpdateChecker.getUpdateUrl();
+                String current = getPluginMeta().getVersion();
+
+                Map<String, String> p = new HashMap<>();
+                p.put(Constants.VERSION, current);
+                p.put(Constants.NEW_VERSION, latest);
+                p.put(Constants.URL, url != null ? url : "");
+
+                String msg = langConfig.getString("update-available",
+                        "{PREFIX} <yellow>Update available: <click:open_url:\"{URL}\"><hover:show_text:\"<gray>Click to download\">{NEW_VERSION}</hover></click> <gray>(current: {VERSION})");
+                String resolved = msg;
+                for (Map.Entry<String, String> entry : p.entrySet()) {
+                    resolved = resolved.replace(entry.getKey(), entry.getValue());
+                }
+                resolved = resolved.replace(Constants.PREFIX, prefix);
+
+                player.sendMessage(MessageUtils.parseMessage(resolved));
+            }
+        });
     }
 }
