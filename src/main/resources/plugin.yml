@@ -1,7 +1,9 @@
 name: plsDonate
-version: "1.0"
+version: "${project.version}"
 main: click.sattr.plsDonate.PlsDonate
 api-version: "1.21"
+description: Integrates your server with Tako to receive donations directly from the in-game command/dialog
+author: Sattr
 commands:
   plsdonate:
     description: Main command for plsDonate
@@ -9,7 +11,8 @@ commands:
     permission: plsdonate.admin.help
   donate:
     description: Main donation command
-softdepend: [floodgate, Geyser-Spigot, Geyser, PlaceholderAPI, SkinsRestorer, ViaVersion]
+softdepend:
+  [floodgate, Geyser-Spigot, Geyser, PlaceholderAPI, SkinsRestorer, ViaVersion]
 permissions:
   plsdonate.donate.request:
     description: Create a donation request via /donate
@@ -49,4 +52,8 @@ permissions:
     default: op
   plsdonate.admin.reload:
     description: Reload the plugin configuration
+    default: op
+
+  plsdonate.update.notify:
+    description: Receive update notifications on join
     default: op

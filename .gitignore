@@ -19,5 +19,8 @@ Thumbs.db
 skills-lock.json
 .gemini/
 
+# Local design docs (not for upstream)
+docs/
+
 # Local session notes (not for upstream)
 SESSION_NOTES.md

@@ -99,7 +99,7 @@ public class StatsManager {
 
         if (page < totalPages) {
             String footer = plugin.getLangConfig().getString("leaderboard-footer", "<gray>----------------------------");
-            String nextBtn = " <yellow><click:run_command:\"" + nextPageBaseCommand + " " + (page + 1) + "\"><hover:show_text:\"<gray>Click to view page " + (page + 1) + "\">[Next Page »]</hover></click>";
+            String nextBtn = " <reset><yellow><click:run_command:\"" + nextPageBaseCommand + " " + (page + 1) + "\"><hover:show_text:\"<gray>Click to view page " + (page + 1) + "\">[Next Page]</hover></click>";
             sender.sendMessage(MessageUtils.parseMessage(footer + nextBtn, p));
         } else {
             sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("leaderboard-footer", "<gray>----------------------------"), p));

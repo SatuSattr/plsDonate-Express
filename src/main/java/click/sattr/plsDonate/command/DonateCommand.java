@@ -101,6 +101,15 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // No-args fallback for pre-1.21.6 Java clients (dialogs not supported)
+        if (args.length == 0) {
+            Map<String, String> p = new HashMap<>();
+            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+            p.put(Constants.COMMAND, label);
+            player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-usage", "{PREFIX} <red>Invalid usage."), p));
+            return true;
+        }
+
         // Help: accept any trailing args so "/donate help foo bar" still shows help
         if (args[0].equalsIgnoreCase("help")) {
             if (!player.hasPermission(Constants.PERM_DONATE_HELP)) {
@@ -418,7 +427,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             String base = "/" + label + " history" + (viewingOther ? " " + targetName : "");
             String hover = plugin.getLangConfig().getString("history-next-hover", "<gray>Click to view page {NEXT_PAGE}")
                     .replace("{NEXT_PAGE}", String.valueOf(page + 1));
-            String nextBtn = " <yellow><click:run_command:\"" + base + " " + (page + 1) + "\"><hover:show_text:\"" + hover + "\">[Next Page »]</hover></click>";
+            String nextBtn = " <reset><yellow><click:run_command:\"" + base + " " + (page + 1) + "\"><hover:show_text:\"" + hover + "\">[Next Page »]</hover></click>";
             viewer.sendMessage(MessageUtils.parseMessage(footer + nextBtn, p));
         } else {
             viewer.sendMessage(MessageUtils.parseMessage(footer, p));

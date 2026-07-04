@@ -181,7 +181,7 @@ transaction-list-header: "<gray><st>          <reset> <green>plsDonate <yellow><
 transaction-list-format: '<gray>#<white><click:run_command:"/pdn transaction info {ID}"><hover:show_text:"<gray>Click for details">{ID}</hover></click> <gray>| <white>{NAME} <gray>| <green>Rp{AMOUNT_FORMATTED} <gray>| {STATUS_COLORED}'
 transaction-list-empty: "<gray>No transactions found in database."
 transaction-list-footer: "<gray><st>                                                    "
-transaction-list-next-btn: ' <yellow><click:run_command:"/pdn transaction list {NEXT_PAGE}"><hover:show_text:"<gray>Click for next page">[Next Page »]</hover></click>'
+transaction-list-next-btn: ' <reset><yellow><click:run_command:"/pdn transaction list {NEXT_PAGE}"><hover:show_text:"<gray>Click for next page">[Next Page]</hover></click>'
 
 # Available Placeholders: {ID}, {TX_ID}, {NAME}, {AMOUNT_FORMATTED}, {STATUS_COLORED}, {TYPE_COLORED}, {DATE}, {COMPLETED_AT}, {CHECKSUM}
 transaction-info-header: "<gray><st>          <reset> <green>plsDonate <gold><u>Transaction Details: #{ID}</u> <gray><st>          "
@@ -327,3 +327,12 @@ donation-confirmation-java-dialog:
 
   yes-label: "<green>Yes"
   no-label: "Cancel"
+
+# Update Checker Messages
+# Available Placeholders: {PREFIX}, {VERSION}, {NEW_VERSION}, {URL}
+version-current: "{PREFIX} <green>plsDonate version <yellow>{VERSION}"
+update-checking: "{PREFIX} <gray>Checking for updates..."
+update-current: "{PREFIX} <green>You are running the latest version ({VERSION})."
+update-available: "{PREFIX} <yellow>Update available: <click:open_url:\"{URL}\"><hover:show_text:\"<gray>Click to download\">{NEW_VERSION}</hover></click> <gray>(current: {VERSION})"
+update-skip: "{PREFIX} <gray>Update check skipped — last checked less than 60 minutes ago."
+update-fail: "{PREFIX} <red>Could not check for updates."

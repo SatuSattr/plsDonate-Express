@@ -6,6 +6,7 @@ import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.DonationValidator;
 import click.sattr.plsDonate.util.HashUtils;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.UpdateChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -63,6 +64,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn pushdonate <amount> <email> <method> [msg] <gray>- Simulate a real donation (Included in stats)", p));
                 sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn testdiscord <gray>- Send a test Discord webhook embed", p));
                 sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn reload <gray>- Reload configuration", p));
+                sender.sendMessage(MessageUtils.parseMessage("    <yellow>/pdn version <gray>- Show plugin version and check for updates", p));
             }
             sender.sendMessage(MessageUtils.parseMessage("<newline><gray>----------------------------", p));
             return true;
@@ -399,6 +401,22 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             }
             plugin.reloadPlugin(sender);
             MessageUtils.sendLangMessage(sender, plugin, "reload-success", null);
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                UpdateChecker.checkUpdate(plugin, sender);
+            });
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("version")) {
+            Map<String, String> vp = new HashMap<>();
+            vp.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+            vp.put(Constants.VERSION, plugin.getPluginMeta().getVersion());
+            sender.sendMessage(MessageUtils.parseMessage(
+                plugin.getLangConfig().getString("version-current", "{PREFIX} <green>plsDonate version <yellow>{VERSION}"),
+                vp));
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                UpdateChecker.checkUpdate(plugin, sender);
+            });
             return true;
         }
 
@@ -440,7 +458,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             String footer = plugin.getLangConfig().getString("transaction-list-footer", "<gray>----------------------------");
             Map<String, String> nextP = new HashMap<>(p);
             nextP.put("{NEXT_PAGE}", String.valueOf(page + 1));
-            String nextBtn = plugin.getLangConfig().getString("transaction-list-next-btn", " [Next Page »]");
+            String nextBtn = plugin.getLangConfig().getString("transaction-list-next-btn", " [Next Page]");
             sender.sendMessage(MessageUtils.parseMessage(footer + nextBtn, nextP));
         } else {
             sender.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("transaction-list-footer", "<gray>----------------------------"), p));
@@ -534,6 +552,7 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             if ("top".startsWith(sub) && sender.hasPermission(Constants.PERM_DONATE_TOP)) completions.add("top");
             if ("milestone".startsWith(sub) && sender.hasPermission(Constants.PERM_DONATE_MILESTONE)) completions.add("milestone");
             if ("transaction".startsWith(sub) && sender.hasPermission(Constants.PERM_ADMIN_TRANSACTION)) completions.add("transaction");
+            if ("version".startsWith(sub)) completions.add("version");
             if ("help".startsWith(sub)) completions.add("help");
         } else if (args.length == 2 && args[0].equalsIgnoreCase("top")) {
             completions.add("1");
