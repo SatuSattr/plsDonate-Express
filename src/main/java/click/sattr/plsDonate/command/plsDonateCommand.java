@@ -6,6 +6,7 @@ import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.DonationValidator;
 import click.sattr.plsDonate.util.HashUtils;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.UpdateChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -399,6 +400,9 @@ public class plsDonateCommand implements CommandExecutor, TabCompleter {
             }
             plugin.reloadPlugin(sender);
             MessageUtils.sendLangMessage(sender, plugin, "reload-success", null);
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                UpdateChecker.checkUpdate(plugin, sender);
+            });
             return true;
         }
 
