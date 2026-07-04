@@ -228,11 +228,6 @@ public final class PlsDonate extends JavaPlugin implements Listener {
             }
 
             checkImportantConfigs();
-
-            // Async update check — non-blocking, runs after startup
-            Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-                UpdateChecker.checkUpdate(this, null);
-            });
         });
     }
 

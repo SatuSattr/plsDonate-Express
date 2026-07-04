@@ -330,6 +330,7 @@ donation-confirmation-java-dialog:
 
 # Update Checker Messages
 # Available Placeholders: {PREFIX}, {VERSION}, {NEW_VERSION}, {URL}
+version-current: "{PREFIX} <green>plsDonate version <yellow>{VERSION}"
 update-checking: "{PREFIX} <gray>Checking for updates..."
 update-current: "{PREFIX} <green>You are running the latest version ({VERSION})."
 update-available: "{PREFIX} <yellow>Update available: <click:open_url:\"{URL}\"><hover:show_text:\"<gray>Click to download\">{NEW_VERSION}</hover></click> <gray>(current: {VERSION})"

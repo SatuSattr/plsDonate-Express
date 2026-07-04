@@ -21,7 +21,7 @@ public final class UpdateChecker {
 
     private static final String GITHUB_API = "https://api.github.com/repos/SatuSattr/plsDonate/releases/latest";
     private static final String GITHUB_RELEASES = "https://github.com/SatuSattr/plsDonate/releases/tag/";
-    private static final long CHECK_INTERVAL_MS = 3_600_000;
+    private static final long CHECK_INTERVAL_MS = 1_800_000; // 30 minutes
 
     private static @Nullable String latestVersion;
     private static @Nullable String updateUrl;
