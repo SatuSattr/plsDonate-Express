@@ -4,6 +4,7 @@ import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.repository.TransactionRepository.LeaderboardEntry;
 import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 import org.bukkit.command.CommandSender;
 
 import java.util.Collections;
@@ -14,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Keeps the leaderboard top entries and the milestone total in memory so that
- * /donate top, /pdn leaderboard and /pdn milestone don't hit the database on
+ * /donate top, /pdn top and /pdn milestone don't hit the database on
  * every invocation. Only the top {@link #CACHE_SIZE} donors are cached, so the
  * footprint stays bounded even on servers with thousands of donors. The cache is
  * refreshed whenever a donation is fulfilled, an admin edits the ledger, or the
@@ -22,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class StatsManager {
 
-    private static final int CACHE_SIZE = 20;
+    private static final int CACHE_SIZE = 50;
     private static final int PAGE_SIZE = 10;
 
     private final PlsDonate plugin;
@@ -54,7 +55,7 @@ public class StatsManager {
             this.cachedDonorCount = count;
             this.cachedTotal = total;
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to refresh stats cache: " + e.getMessage());
+            PluginLogger.warn("Failed to refresh stats cache: " + e.getMessage());
         }
     }
 

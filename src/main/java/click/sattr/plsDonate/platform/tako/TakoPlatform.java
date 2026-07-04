@@ -3,6 +3,7 @@ package click.sattr.plsDonate.platform.tako;
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.platform.DonationPlatform;
 import click.sattr.plsDonate.util.Constants;
+import click.sattr.plsDonate.util.PluginLogger;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -31,7 +32,7 @@ public class TakoPlatform implements DonationPlatform {
         this.plugin = plugin;
         this.httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
-                .connectTimeout(Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(15))
                 .build();
         this.gson = new Gson();
     }
@@ -73,6 +74,7 @@ public class TakoPlatform implements DonationPlatform {
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
+                .timeout(Duration.ofSeconds(15))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody.toString()))
                 .build();
 
@@ -99,7 +101,7 @@ public class TakoPlatform implements DonationPlatform {
                     }
                 })
                 .exceptionally(ex -> {
-                    plugin.getLogger().severe("API Request Failed: " + ex.getMessage());
+                    PluginLogger.severe("API Request Failed: " + ex.getMessage());
                     return new DonationResponse(false, "Network error: " + ex.getMessage(), null, null);
                 });
     }
@@ -128,7 +130,7 @@ public class TakoPlatform implements DonationPlatform {
         }
 
         try {
-            JsonObject payload = new JsonParser().parse(body).getAsJsonObject();
+            JsonObject payload = JsonParser.parseString(body).getAsJsonObject();
 
             if (!payload.has("id")) {
                 return new WebhookResult(false, "Valid signature, but missing 'id' field in payload.", null, null, null, 0, null, null);

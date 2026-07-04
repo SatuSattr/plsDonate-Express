@@ -71,10 +71,10 @@ public class PlsDonateExpansion extends PlaceholderExpansion {
         if (player != null && params.startsWith("player_")) {
             switch (params) {
                 case "player_total":
-                    double total = plugin.getTransactionRepository().getPlayerTotal(player.getName());
+                    double total = plugin.getTransactionRepository().getPlayerTotal(player.getUniqueId().toString(), player.getName());
                     return MessageUtils.formatAmount(plugin, total);
                 case "player_rank":
-                    int rank = plugin.getTransactionRepository().getPlayerRank(player.getName());
+                    int rank = plugin.getTransactionRepository().getPlayerRank(player.getUniqueId().toString(), player.getName());
                     return rank > 0 ? "#" + rank : plugin.getLangConfig().getString("value-unranked", "Unranked");
             }
         }

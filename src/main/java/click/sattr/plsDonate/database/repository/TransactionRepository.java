@@ -2,11 +2,12 @@ package click.sattr.plsDonate.database.repository;
 
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.DatabaseManager;
+import click.sattr.plsDonate.util.HashUtils;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import org.jetbrains.annotations.Nullable;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,20 +23,21 @@ public class TransactionRepository {
         this.databaseManager = databaseManager;
     }
 
-    public java.util.concurrent.CompletableFuture<Void> createDonationRequest(String txId, double amount, String name, boolean isSandbox) {
+    public java.util.concurrent.CompletableFuture<Void> createDonationRequest(String txId, double amount, String name, @Nullable String donorUuid, boolean isSandbox) {
         return java.util.concurrent.CompletableFuture.runAsync(() -> {
-            String sql = "INSERT OR IGNORE INTO transactions (tx_id, amount, donor_name, checksum, status, timestamp, is_sandbox) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT OR IGNORE INTO transactions (tx_id, amount, donor_name, donor_uuid, checksum, status, timestamp, is_sandbox) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, txId);
                 ps.setDouble(2, amount);
                 ps.setString(3, name);
-                ps.setString(4, calculateMD5(txId + amount + name));
-                ps.setString(5, "PENDING");
-                ps.setLong(6, System.currentTimeMillis() / 1000L);
-                ps.setInt(7, isSandbox ? 1 : 0);
+                ps.setString(4, donorUuid);
+                ps.setString(5, HashUtils.md5(txId + amount + name));
+                ps.setString(6, "PENDING");
+                ps.setLong(7, System.currentTimeMillis() / 1000L);
+                ps.setInt(8, isSandbox ? 1 : 0);
                 ps.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().severe("Failed to create donation request in DB: " + e.getMessage());
+                PluginLogger.severe("Failed to create donation request in DB: " + e.getMessage());
             }
         });
     }
@@ -50,12 +52,12 @@ public class TransactionRepository {
                     if (!"PENDING".equals(status)) return false;
 
                     String storedChecksum = rs.getString("checksum");
-                    String currentChecksum = calculateMD5(txId + amount + name);
+                    String currentChecksum = HashUtils.md5(txId + amount + name);
                     return currentChecksum.equals(storedChecksum);
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error validating transaction " + txId + ": " + e.getMessage());
+            PluginLogger.severe("Error validating transaction " + txId + ": " + e.getMessage());
         }
         return false;
     }
@@ -65,7 +67,7 @@ public class TransactionRepository {
             try (Connection conn = databaseManager.getConnection()) {
                 claimPending(conn, txId);
             } catch (SQLException e) {
-                plugin.getLogger().severe("Failed to mark transaction " + txId + " as used: " + e.getMessage());
+                PluginLogger.severe("Failed to mark transaction " + txId + " as used: " + e.getMessage());
             }
         });
     }
@@ -79,7 +81,7 @@ public class TransactionRepository {
         try (Connection conn = databaseManager.getConnection()) {
             return claimPending(conn, txId) == 1;
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to claim transaction " + txId + ": " + e.getMessage());
+            PluginLogger.severe("Failed to claim transaction " + txId + ": " + e.getMessage());
             return false;
         }
     }
@@ -103,9 +105,9 @@ public class TransactionRepository {
 
     public List<LeaderboardEntry> getLeaderboard(int limit, int offset) {
         List<LeaderboardEntry> entries = new ArrayList<>();
-        String sql = "SELECT donor_name, SUM(amount) as total_amount FROM transactions " +
+        String sql = "SELECT MAX(donor_name) as donor_name, SUM(amount) as total_amount FROM transactions " +
                      "WHERE status = 'COMPLETED' AND is_sandbox = 0 " +
-                     "GROUP BY donor_name ORDER BY total_amount DESC LIMIT ? OFFSET ?";
+                     "GROUP BY COALESCE(donor_uuid, donor_name) ORDER BY total_amount DESC LIMIT ? OFFSET ?";
         try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, limit);
             ps.setInt(2, offset);
@@ -117,13 +119,13 @@ public class TransactionRepository {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch leaderboard: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch leaderboard: " + e.getMessage());
         }
         return entries;
     }
 
     public int getLeaderboardCount() {
-        String sql = "SELECT COUNT(DISTINCT donor_name) FROM transactions WHERE status = 'COMPLETED' AND is_sandbox = 0";
+        String sql = "SELECT COUNT(DISTINCT COALESCE(donor_uuid, donor_name)) FROM transactions WHERE status = 'COMPLETED' AND is_sandbox = 0";
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -131,7 +133,7 @@ public class TransactionRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch leaderboard count: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch leaderboard count: " + e.getMessage());
         }
         return 0;
     }
@@ -148,7 +150,7 @@ public class TransactionRepository {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch transactions: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch transactions: " + e.getMessage());
         }
         return records;
     }
@@ -158,7 +160,7 @@ public class TransactionRepository {
         try (Connection conn = databaseManager.getConnection(); Statement s = conn.createStatement(); ResultSet rs = s.executeQuery(sql)) {
             if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to count transactions: " + e.getMessage());
+            PluginLogger.severe("Failed to count transactions: " + e.getMessage());
         }
         return 0;
     }
@@ -171,7 +173,7 @@ public class TransactionRepository {
                 if (rs.next()) return mapResultSetToRecord(rs);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch transaction by id: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch transaction by id: " + e.getMessage());
         }
         return null;
     }
@@ -182,7 +184,7 @@ public class TransactionRepository {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to delete transaction: " + e.getMessage());
+            PluginLogger.severe("Failed to delete transaction: " + e.getMessage());
             return false;
         }
     }
@@ -195,7 +197,7 @@ public class TransactionRepository {
             ps.setInt(3, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to update transaction status: " + e.getMessage());
+            PluginLogger.severe("Failed to update transaction status: " + e.getMessage());
             return false;
         }
     }
@@ -206,7 +208,7 @@ public class TransactionRepository {
             if (!player.equalsIgnoreCase("all")) ps.setString(1, player);
             ps.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to clear transactions: " + e.getMessage());
+            PluginLogger.severe("Failed to clear transactions: " + e.getMessage());
         }
     }
 
@@ -233,7 +235,7 @@ public class TransactionRepository {
                 return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch total donations: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch total donations: " + e.getMessage());
         }
         return 0;
     }
@@ -248,70 +250,73 @@ public class TransactionRepository {
                 }
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Error checking sandbox status for transaction " + txId + ": " + e.getMessage());
+            PluginLogger.severe("Error checking sandbox status for transaction " + txId + ": " + e.getMessage());
         }
         return false;
     }
 
-    public double getPlayerTotal(String playerName) {
-        String sql = "SELECT SUM(amount) FROM transactions WHERE donor_name = ? COLLATE NOCASE AND status = 'COMPLETED' AND is_sandbox = 0";
+    public double getPlayerTotal(@Nullable String donorUuid, String playerName) {
+        String sql = "SELECT SUM(amount) FROM transactions WHERE (donor_uuid = ? OR (donor_uuid IS NULL AND donor_name = ? COLLATE NOCASE)) AND status = 'COMPLETED' AND is_sandbox = 0";
         try (Connection conn = databaseManager.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, playerName);
+            ps.setString(1, donorUuid);
+            ps.setString(2, playerName);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to get player total: " + e.getMessage());
+            PluginLogger.severe("Failed to get player total: " + e.getMessage());
         }
         return 0;
     }
 
-    public int getPlayerRank(String playerName) {
-        String sql = "SELECT donor_name, SUM(amount) as total FROM transactions WHERE status = 'COMPLETED' AND is_sandbox = 0 GROUP BY donor_name ORDER BY total DESC";
+    public int getPlayerRank(@Nullable String donorUuid, String playerName) {
+        String sql = "SELECT COALESCE(donor_uuid, donor_name) as donor_key, SUM(amount) as total FROM transactions WHERE status = 'COMPLETED' AND is_sandbox = 0 GROUP BY donor_key ORDER BY total DESC";
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             int rank = 1;
             while (rs.next()) {
-                if (rs.getString("donor_name").equalsIgnoreCase(playerName)) return rank;
+                String donorKey = rs.getString("donor_key");
+                if (donorKey.equalsIgnoreCase(donorUuid != null ? donorUuid : playerName)) return rank;
                 rank++;
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to get player rank: " + e.getMessage());
+            PluginLogger.severe("Failed to get player rank: " + e.getMessage());
         }
         return 0;
     }
 
     /** Paginated donation history for a single player. Excludes sandbox and only shows
      *  payable states (COMPLETED + PENDING); VOID is hidden. Most recent first. */
-    public List<TransactionRecord> getPlayerHistory(String playerName, int limit, int offset) {
+    public List<TransactionRecord> getPlayerHistory(String playerName, @Nullable String donorUuid, int limit, int offset) {
         try (Connection conn = databaseManager.getConnection()) {
-            return queryPlayerHistory(conn, playerName, limit, offset);
+            return queryPlayerHistory(conn, playerName, donorUuid, limit, offset);
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to fetch player history: " + e.getMessage());
+            PluginLogger.severe("Failed to fetch player history: " + e.getMessage());
             return new ArrayList<>();
         }
     }
 
-    public int getPlayerHistoryCount(String playerName) {
+    public int getPlayerHistoryCount(String playerName, @Nullable String donorUuid) {
         try (Connection conn = databaseManager.getConnection()) {
-            return queryPlayerHistoryCount(conn, playerName);
+            return queryPlayerHistoryCount(conn, playerName, donorUuid);
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to count player history: " + e.getMessage());
+            PluginLogger.severe("Failed to count player history: " + e.getMessage());
             return 0;
         }
     }
 
-    static List<TransactionRecord> queryPlayerHistory(Connection conn, String playerName, int limit, int offset) throws SQLException {
+    static List<TransactionRecord> queryPlayerHistory(Connection conn, String playerName, @Nullable String donorUuid, int limit, int offset) throws SQLException {
         List<TransactionRecord> records = new ArrayList<>();
         String sql = "SELECT * FROM transactions " +
-                "WHERE donor_name = ? COLLATE NOCASE AND is_sandbox = 0 " +
+                "WHERE (donor_uuid = ? OR (donor_uuid IS NULL AND donor_name = ? COLLATE NOCASE)) AND is_sandbox = 0 " +
                 "AND status IN ('COMPLETED', 'PENDING') " +
                 "ORDER BY timestamp DESC LIMIT ? OFFSET ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, playerName);
-            ps.setInt(2, limit);
-            ps.setInt(3, offset);
+            ps.setString(1, donorUuid);
+            ps.setString(2, playerName);
+            ps.setInt(3, limit);
+            ps.setInt(4, offset);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     records.add(mapResultSetToRecord(rs));
@@ -321,12 +326,13 @@ public class TransactionRepository {
         return records;
     }
 
-    static int queryPlayerHistoryCount(Connection conn, String playerName) throws SQLException {
+    static int queryPlayerHistoryCount(Connection conn, String playerName, @Nullable String donorUuid) throws SQLException {
         String sql = "SELECT COUNT(*) FROM transactions " +
-                "WHERE donor_name = ? COLLATE NOCASE AND is_sandbox = 0 " +
+                "WHERE (donor_uuid = ? OR (donor_uuid IS NULL AND donor_name = ? COLLATE NOCASE)) AND is_sandbox = 0 " +
                 "AND status IN ('COMPLETED', 'PENDING')";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, playerName);
+            ps.setString(1, donorUuid);
+            ps.setString(2, playerName);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getInt(1);
             }
@@ -344,24 +350,9 @@ public class TransactionRepository {
                 return new LeaderboardEntry(rs.getString("donor_name"), amount, MessageUtils.formatAmount(plugin, amount));
             }
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to get recent donation: " + e.getMessage());
+            PluginLogger.severe("Failed to get recent donation: " + e.getMessage());
         }
         return null;
-    }
-
-    private String calculateMD5(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] messageDigest = md.digest(input.getBytes());
-            BigInteger no = new BigInteger(1, messageDigest);
-            String hashtext = no.toString(16);
-            while (hashtext.length() < 32) {
-                hashtext = "0" + hashtext;
-            }
-            return hashtext;
-        } catch (NoSuchAlgorithmException e) {
-            return null;
-        }
     }
 
     public record LeaderboardEntry(String name, double amount, String amountFormatted) {}

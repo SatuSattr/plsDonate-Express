@@ -2,6 +2,7 @@ package click.sattr.plsDonate.manager;
 
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.skinsrestorer.api.PropertyUtils;
@@ -67,7 +68,7 @@ public class DiscordManager {
     public DiscordManager(PlsDonate plugin) {
         this.plugin = plugin;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(15))
                 .build();
     }
 
@@ -324,7 +325,7 @@ public class DiscordManager {
 
             return VZGE_URL_BASE + VZGE_DEFAULT_SIZE + "/" + textureHash;
         } catch (Exception e) {
-            plugin.getLogger().warning("[DiscordManager] Failed to resolve SkinsRestorer skin for "
+            PluginLogger.warn("[DiscordManager] Failed to resolve SkinsRestorer skin for "
                     + playerName + ": " + e.getMessage());
             return fallback;
         }
@@ -352,7 +353,7 @@ public class DiscordManager {
             String textureHash = textureUrl.substring(textureUrl.lastIndexOf('/') + 1);
             return textureHash.isBlank() ? "" : textureHash;
         } catch (Exception e) {
-            plugin.getLogger().warning("[DiscordManager] Failed to resolve SkinsRestorer texture ID for "
+            PluginLogger.warn("[DiscordManager] Failed to resolve SkinsRestorer texture ID for "
                     + playerName + ": " + e.getMessage());
             return "";
         }
@@ -387,7 +388,7 @@ public class DiscordManager {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(10))
+                    .timeout(Duration.ofSeconds(15))
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                     .build();
 
@@ -395,15 +396,15 @@ public class DiscordManager {
                     .thenAccept(response -> {
                         int sc = response.statusCode();
                         if (sc < 200 || sc >= 300) {
-                            plugin.getLogger().warning("Discord webhook returned HTTP " + sc + ": " + response.body());
+                            PluginLogger.warn("Discord webhook returned HTTP " + sc + ": " + response.body());
                         }
                     })
                     .exceptionally(ex -> {
-                        plugin.getLogger().warning("Failed to send Discord webhook: " + ex.getMessage());
+                        PluginLogger.warn("Failed to send Discord webhook: " + ex.getMessage());
                         return null;
                     });
         } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning("Invalid Discord webhook URL configured: " + e.getMessage());
+            PluginLogger.warn("Invalid Discord webhook URL configured: " + e.getMessage());
         }
     }
 }

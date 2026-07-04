@@ -3,6 +3,8 @@ package click.sattr.plsDonate.command;
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.database.repository.TransactionRepository;
 import click.sattr.plsDonate.util.Constants;
+import click.sattr.plsDonate.util.DonationValidator;
+import click.sattr.plsDonate.util.HashUtils;
 import click.sattr.plsDonate.util.MessageUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -13,17 +15,14 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import click.sattr.plsDonate.util.ProtocolVersionUtil;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 
 public class DonateCommand implements CommandExecutor, TabCompleter {
 
@@ -33,10 +32,6 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
     // Map to store cooldowns: Map<PlayerUUID, LastUsageTimestamp>
     private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
     
-    // Simple Email Regex Pattern
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$");
-    private static final Pattern MD5_PATTERN = Pattern.compile("^[a-fA-F0-9]{32}$");
-
     public DonateCommand(PlsDonate plugin) {
         this.plugin = plugin;
     }
@@ -76,13 +71,14 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
-            cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+            // Cooldown will be set when form is confirmed, not when opened
             plugin.getBedrockFormHandler().openDonationForm(player);
             return true;
         }
 
-        // Java donation dialog (no args, Java player, server 1.21.6+)
-        if (args.length == 0 && plugin.getJavaDialogHandler() != null) {
+        // Java donation dialog (no args, Java player, client 1.21.6+)
+        if (args.length == 0 && plugin.getJavaDialogHandler() != null 
+                && ProtocolVersionUtil.supportsDialogs(player)) {
             if (!player.hasPermission(Constants.PERM_DONATE_REQUEST)) {
                 MessageUtils.sendLangMessage(player, plugin, "no-permission", null);
                 return true;
@@ -100,13 +96,13 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
             }
-            cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+            // Cooldown will be set when dialog is confirmed, not when opened
             plugin.getJavaDialogHandler().openDonationForm(player);
             return true;
         }
 
         // Help: accept any trailing args so "/donate help foo bar" still shows help
-        if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
+        if (args[0].equalsIgnoreCase("help")) {
             if (!player.hasPermission(Constants.PERM_DONATE_HELP)) {
                 MessageUtils.sendLangMessage(player, plugin, "no-permission", null);
                 return true;
@@ -118,8 +114,8 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Leaderboard / top — viewable by regular players, served from the in-memory cache
-        if (args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("top")) {
+        // Top / leaderboard — viewable by regular players, served from the in-memory cache
+        if (args[0].equalsIgnoreCase("top")) {
             if (!player.hasPermission(Constants.PERM_DONATE_TOP)) {
                 MessageUtils.sendLangMessage(player, plugin, "no-permission", null);
                 return true;
@@ -171,7 +167,8 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             }
 
             boolean viewingOther = !targetName.equalsIgnoreCase(player.getName());
-            displayHistory(player, targetName, page, viewingOther, label);
+            String targetUuid = viewingOther ? null : player.getUniqueId().toString();
+            displayHistory(player, targetUuid, targetName, page, viewingOther, label);
             return true;
         }
 
@@ -182,12 +179,14 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
         }
 
         // Handle Confirmation via MD5
-        if (args.length == 1 && MD5_PATTERN.matcher(args[0]).matches()) {
+        if (args.length == 1 && DonationValidator.MD5_PATTERN.matcher(args[0]).matches()) {
             String hash = args[0].toLowerCase();
             DonationRequest request = pendingRequests.get(hash);
 
             if (request != null && request.playerUuid().equals(player.getUniqueId())) {
                 pendingRequests.remove(hash);
+                // Set cooldown here — confirmation was accepted (dialog "Yes" or chat confirm)
+                cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
                 processDonation(player, request.amount(), request.email(), request.method(), request.message(), plugin);
                 return true;
             } else {
@@ -225,16 +224,9 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
         }
 
         // 1. Amount Validation
-        double amount;
-        try {
-            amount = Double.parseDouble(args[0]);
-            if (!Double.isFinite(amount)) throw new NumberFormatException("non-finite amount");
-        } catch (NumberFormatException e) {
-            Map<String, String> p = new HashMap<>();
-            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-            player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-amount", "{PREFIX} <white>Please <red>enter a valid amount <white>using numbers only <gray>(example: 50000)"), p));
-            return true;
-        }
+        Double parsedAmount = DonationValidator.parseAmount(args[0], player, plugin);
+        if (parsedAmount == null) return true;
+        double amount = parsedAmount;
 
         double minConfig = plugin.getConfig().getDouble(Constants.CONF_DONATE_MIN_AMOUNT, 1000);
         double maxConfig = plugin.getConfig().getDouble(Constants.CONF_DONATE_MAX_AMOUNT, 10000000);
@@ -259,74 +251,26 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
 
         // 2. Email Validation
         String email = args[1];
-        if (!EMAIL_PATTERN.matcher(email).matches() || email.length() > 64) {
-            Map<String, String> p = new HashMap<>();
-            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-            player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-email", "{PREFIX} <white>Please <red>provide <white>a valid email <gray>example: (your@gmail.com)"), p));
-            return true;
-        }
+        if (!DonationValidator.validateEmail(email, player, plugin)) return true;
 
         // 3. Payment Method Validation
         String method = args[2].toLowerCase();
-        if (!method.equals("qris") && !method.equals("gopay") && !method.equals("paypal")) {
-            Map<String, String> p = new HashMap<>();
-            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-            player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("invalid-payment-method", "{PREFIX} <red>Invalid payment method! <yellow>Options: qris, gopay, paypal"), p));
-            return true;
-        }
-
-        if (method.equals("gopay") && amount < 10000) {
-            Map<String, String> p = new HashMap<>();
-            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-            p.put(Constants.METHOD, method);
-            p.put("{METHOD_UPPERCASED}", method.toUpperCase());
-            p.put(Constants.AMOUNT_FORMATTED, MessageUtils.formatAmount(plugin, 10000));
-            player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("payment-method-min-error", "{PREFIX} <red>Minimum donation for {METHOD_UPPERCASED} is <yellow>Rp{AMOUNT_FORMATTED}"), p));
-            return true;
-        }
-
-        if (method.equals("paypal") && amount < 50000) {
-            Map<String, String> p = new HashMap<>();
-            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-            p.put(Constants.METHOD, method);
-            p.put("{METHOD_UPPERCASED}", method.toUpperCase());
-            p.put(Constants.AMOUNT_FORMATTED, MessageUtils.formatAmount(plugin, 50000));
-            player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("payment-method-min-error", "{PREFIX} <red>Minimum donation for {METHOD_UPPERCASED} is <yellow>Rp{AMOUNT_FORMATTED}"), p));
-            return true;
-        }
+        if (!DonationValidator.validateMethod(method, amount, player, plugin)) return true;
 
         // 4. Message Validation
-        String messageStr = "";
-        if (args.length > 3) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 3; i < args.length; i++) {
-                sb.append(args[i]).append(" ");
-            }
-            messageStr = sb.toString().trim();
-        }
-
-        int configMaxMsgLen = plugin.getConfig().getInt(Constants.CONF_DONATE_MAX_MESSAGE, 255);
-        int platformMaxMsgLen = plugin.getDonationPlatform().getMaxMessageLength();
-        int maxMsgLen = Math.min(Math.min(configMaxMsgLen, platformMaxMsgLen), 190);
-        
-        if (messageStr.length() > maxMsgLen) {
-            Map<String, String> p = new HashMap<>();
-            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
-            p.put("{LIMIT}", String.valueOf(maxMsgLen));
-            player.sendMessage(MessageUtils.parseMessage(plugin.getLangConfig().getString("message-length-error", "{PREFIX} <white>Sorry, <red>maximal length <white>of the message is <yellow>{LIMIT} Character. <white>Please shorten your message."), p));
-            return true;
-        }
-
-        // Set Cooldown
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+        String messageStr = DonationValidator.buildMessage(args, 3);
+        if (!DonationValidator.validateMessageLength(messageStr, player, plugin)) return true;
 
         // 5. Confirmation System
         boolean requireConfirmation = plugin.getConfig().getBoolean(Constants.CONF_DONATE_CONFIRMATION, true);
 
         if (!requireConfirmation) {
+            // No confirmation required — set cooldown immediately and process
+            cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
             processDonation(player, amount, email, method, messageStr, plugin);
         } else {
             if (plugin.getBedrockFormHandler() != null && plugin.getBedrockFormHandler().isBedrockPlayer(player)) {
+                // Cooldown set when Bedrock confirmation form is accepted
                 plugin.getBedrockFormHandler().sendConfirmationForm(player, amount, email, method, messageStr, false, false);
                 return true;
             }
@@ -334,7 +278,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             // Generate MD5 Hash for this specific request
             long timestamp = System.currentTimeMillis();
             String rawString = player.getUniqueId().toString() + "-" + timestamp + "-" + amount + "-" + email + "-" + method;
-            String hash = md5(rawString);
+            String hash = HashUtils.md5(rawString);
 
             if (hash == null) {
                 MessageUtils.sendLangMessage(player, plugin, "general-error", null);
@@ -350,8 +294,9 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
             p.put(Constants.COMMAND, "/" + label + " " + hash);
 
-            // If Java dialog is supported, skip chat confirmation and show dialog instead
-            if (plugin.getJavaDialogHandler() != null) {
+            // If Java dialog is supported for this specific client, show dialog; otherwise chat fallback
+            // Cooldown set when dialog/chat confirmation is accepted
+            if (plugin.getJavaDialogHandler() != null && ProtocolVersionUtil.supportsDialogs(player)) {
                 MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-confirmation");
                 plugin.getJavaDialogHandler().openConfirmationDialog(player, hash, amount, email, method, messageStr);
             } else {
@@ -363,22 +308,6 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private String md5(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] messageDigest = md.digest(input.getBytes());
-            BigInteger no = new BigInteger(1, messageDigest);
-            String hashtext = no.toString(16);
-            while (hashtext.length() < 32) {
-                hashtext = "0" + hashtext;
-            }
-            return hashtext;
-        } catch (NoSuchAlgorithmException e) {
-            plugin.getLogger().severe("MD5 algorithm not found!");
-            return null;
-        }
-    }
-
     public static void processDonation(Player player, double amount, String email, String method, String message, PlsDonate plugin) {
         // Sound: donation-processed
         MessageUtils.playConfigSounds(player, plugin, "sound-effects.donation-processed");
@@ -387,7 +316,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             if (response.success()) {
                 // Log request to ledger to prevent replay
                 if (response.transactionId() != null) {
-                    plugin.getTransactionRepository().createDonationRequest(response.transactionId(), amount, player.getName(), false);
+                    plugin.getTransactionRepository().createDonationRequest(response.transactionId(), amount, player.getName(), player.getUniqueId().toString(), false);
 
                 }
 
@@ -435,15 +364,15 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
     }
 
     /** Fetches the page off the main thread (no cache exists for history) then renders on the main thread. */
-    private void displayHistory(Player viewer, String targetName, int page, boolean viewingOther, String label) {
+    private void displayHistory(Player viewer, @Nullable String targetUuid, String targetName, int page, boolean viewingOther, String label) {
         int offset = (page - 1) * HISTORY_PAGE_SIZE;
         TransactionRepository repo = plugin.getTransactionRepository();
 
         CompletableFuture.runAsync(() -> {
-            List<TransactionRepository.TransactionRecord> records = repo.getPlayerHistory(targetName, HISTORY_PAGE_SIZE, offset);
-            int totalCount = repo.getPlayerHistoryCount(targetName);
-            double total = repo.getPlayerTotal(targetName);
-            int rank = repo.getPlayerRank(targetName);
+            List<TransactionRepository.TransactionRecord> records = repo.getPlayerHistory(targetName, targetUuid, HISTORY_PAGE_SIZE, offset);
+            int totalCount = repo.getPlayerHistoryCount(targetName, targetUuid);
+            double total = repo.getPlayerTotal(targetUuid, targetName);
+            int rank = repo.getPlayerRank(targetUuid, targetName);
 
             Bukkit.getScheduler().runTask(plugin, () ->
                     renderHistory(viewer, targetName, page, viewingOther, label, records, totalCount, total, rank));
@@ -508,7 +437,6 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             String sub = args[0].toLowerCase();
             if ("help".startsWith(sub)) completions.add("help");
             if ("top".startsWith(sub)) completions.add("top");
-            if ("leaderboard".startsWith(sub)) completions.add("leaderboard");
             if ("milestone".startsWith(sub)) completions.add("milestone");
             if ("history".startsWith(sub)) completions.add("history");
 
@@ -517,7 +445,7 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
             for (long s : suggestions) {
                 if (String.valueOf(s).startsWith(sub)) completions.add(String.valueOf(s));
             }
-        } else if (args.length == 2 && (args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("top"))) {
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("top")) {
             String sub = args[1].toLowerCase();
             for (String pg : List.of("1", "2", "3")) {
                 if (pg.startsWith(sub)) completions.add(pg);
@@ -569,5 +497,13 @@ public class DonateCommand implements CommandExecutor, TabCompleter {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    /**
+     * Sets the cooldown for a player. Called by confirmation handlers
+     * (BedrockFormHandler, JavaDialogHandler) when a donation is confirmed.
+     */
+    public void setCooldown(UUID playerUuid) {
+        cooldowns.put(playerUuid, System.currentTimeMillis());
     }
 }

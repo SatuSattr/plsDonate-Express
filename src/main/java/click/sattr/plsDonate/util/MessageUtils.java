@@ -1,6 +1,7 @@
 package click.sattr.plsDonate.util;
 
 import click.sattr.plsDonate.PlsDonate;
+import click.sattr.plsDonate.util.PluginLogger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -96,7 +97,7 @@ public final class MessageUtils {
             try {
                 player.playSound(player.getLocation(), soundName, volume, pitch);
             } catch (Exception e) {
-                plugin.getLogger().warning("Could not play sound '" + soundName + "': " + e.getMessage());
+                PluginLogger.warn("Could not play sound '" + soundName + "': " + e.getMessage());
             }
         }
     }

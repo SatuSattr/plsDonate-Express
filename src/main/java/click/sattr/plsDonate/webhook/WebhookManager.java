@@ -2,6 +2,7 @@ package click.sattr.plsDonate.webhook;
 
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 import click.sattr.plsDonate.platform.DonationPlatform;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -16,7 +17,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-
 public class WebhookManager {
 
     private final PlsDonate plugin;
@@ -35,10 +35,9 @@ public class WebhookManager {
             server.createContext(path, new WebhookHandler());
             server.setExecutor(null); 
             server.start();
-            plugin.getLogger().info("Webhook listener started on port " + port + " at path " + path);
             return true;
         } catch (IOException e) {
-            plugin.getLogger().severe("Could not start webhook listener: " + e.getMessage());
+            PluginLogger.severe("Could not start webhook listener: " + e.getMessage());
             return false;
         }
     }
@@ -46,7 +45,7 @@ public class WebhookManager {
     public void stop() {
         if (server != null) {
             server.stop(0);
-            plugin.getLogger().info("Webhook listener stopped.");
+            PluginLogger.info("Webhook listener stopped.");
         }
     }
 
@@ -84,7 +83,7 @@ public class WebhookManager {
                 DonationPlatform.WebhookResult result = plugin.getDonationPlatform().parseWebhook(body, exchange.getRequestHeaders());
 
                 if (!result.valid()) {
-                    plugin.getLogger().warning("Webhook Validation Failed: " + result.errorMessage());
+                    PluginLogger.warn("Webhook Validation Failed: " + result.errorMessage());
                     sendResponse(exchange, 400, "Bad Request");
                     return;
                 }
@@ -94,7 +93,7 @@ public class WebhookManager {
                 // Integrity check: transaction exists, is still PENDING, and the checksum
                 // (amount + donor recorded at request time) matches.
                 if (!plugin.getTransactionRepository().isTransactionValid(transactionId, result.amount(), result.donorName())) {
-                    plugin.getLogger().warning("Received potential replay attack or unrecorded transaction: " + transactionId + " from " + result.donorName());
+                    PluginLogger.warn("Received potential replay attack or unrecorded transaction: " + transactionId + " from " + result.donorName());
                     sendResponse(exchange, 403, "Forbidden - Transaction used or invalid");
                     return;
                 }
@@ -103,13 +102,13 @@ public class WebhookManager {
                 // transitions it to COMPLETED proceeds; concurrent duplicate webhooks lose
                 // the claim, closing the check-then-act race that allowed double fulfillment.
                 if (!plugin.getTransactionRepository().claimTransaction(transactionId)) {
-                    plugin.getLogger().warning("Transaction already claimed (concurrent/replay webhook): " + transactionId);
+                    PluginLogger.warn("Transaction already claimed (concurrent/replay webhook): " + transactionId);
                     sendResponse(exchange, 403, "Forbidden - Transaction already processed");
                     return;
                 }
 
                 // Success - Verification Passed
-                plugin.getLogger().info("Verified donation: " + result.donorName() + " donated " + MessageUtils.formatAmount(plugin, result.amount()) + " (tx: " + transactionId + ")");
+                PluginLogger.info("Verified donation: " + result.donorName() + " donated " + MessageUtils.formatAmount(plugin, result.amount()) + " (tx: " + transactionId + ")");
 
                 // Determine if it's sandbox (usually false for webhooks, but safety first)
                 boolean isSandbox = plugin.getTransactionRepository().isSandboxTransaction(transactionId);
@@ -130,16 +129,17 @@ public class WebhookManager {
                 sendResponse(exchange, 200, "OK");
 
             } catch (Exception e) {
-                plugin.getLogger().severe("Error handling webhook request.");
+                PluginLogger.severe("Error handling webhook request.");
                 e.printStackTrace();
                 sendResponse(exchange, 500, "Internal Server Error");
             }
         }
 
         private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
-            exchange.sendResponseHeaders(statusCode, response.length());
+            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(statusCode, bytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes());
+                os.write(bytes);
             }
         }
     }

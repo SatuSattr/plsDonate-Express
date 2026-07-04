@@ -35,6 +35,7 @@ class TransactionRepositoryHistoryTest {
                     "tx_id TEXT UNIQUE, " +
                     "amount REAL, " +
                     "donor_name TEXT, " +
+                    "donor_uuid TEXT, " +
                     "checksum TEXT, " +
                     "status TEXT, " +
                     "timestamp INTEGER, " +
@@ -69,12 +70,12 @@ class TransactionRepositoryHistoryTest {
         insert("c", "Steve", 9000, "VOID", 300, false);
         insert("d", "Steve", 7000, "COMPLETED", 400, true); // sandbox
 
-        List<TransactionRecord> history = TransactionRepository.queryPlayerHistory(conn, "Steve", 50, 0);
+        List<TransactionRecord> history = TransactionRepository.queryPlayerHistory(conn, "Steve", null, 50, 0);
 
         assertEquals(2, history.size());
         assertTrue(history.stream().anyMatch(r -> r.txId().equals("a")));
         assertTrue(history.stream().anyMatch(r -> r.txId().equals("b")));
-        assertEquals(2, TransactionRepository.queryPlayerHistoryCount(conn, "Steve"));
+        assertEquals(2, TransactionRepository.queryPlayerHistoryCount(conn, "Steve", null));
     }
 
     @Test
@@ -82,9 +83,9 @@ class TransactionRepositoryHistoryTest {
         insert("a", "Steve", 5000, "COMPLETED", 100, false);
         insert("b", "Steve", 3000, "COMPLETED", 200, false);
 
-        assertEquals(2, TransactionRepository.queryPlayerHistory(conn, "steve", 50, 0).size());
-        assertEquals(2, TransactionRepository.queryPlayerHistory(conn, "STEVE", 50, 0).size());
-        assertEquals(2, TransactionRepository.queryPlayerHistoryCount(conn, "sTeVe"));
+        assertEquals(2, TransactionRepository.queryPlayerHistory(conn, "steve", null, 50, 0).size());
+        assertEquals(2, TransactionRepository.queryPlayerHistory(conn, "STEVE", null, 50, 0).size());
+        assertEquals(2, TransactionRepository.queryPlayerHistoryCount(conn, "sTeVe", null));
     }
 
     @Test
@@ -92,7 +93,7 @@ class TransactionRepositoryHistoryTest {
         insert("a", "Steve", 5000, "COMPLETED", 100, false);
         insert("b", "Alex", 3000, "COMPLETED", 200, false);
 
-        List<TransactionRecord> history = TransactionRepository.queryPlayerHistory(conn, "Steve", 50, 0);
+        List<TransactionRecord> history = TransactionRepository.queryPlayerHistory(conn, "Steve", null, 50, 0);
         assertEquals(1, history.size());
         assertEquals("a", history.get(0).txId());
     }
@@ -103,7 +104,7 @@ class TransactionRepositoryHistoryTest {
         insert("new", "Steve", 3000, "COMPLETED", 300, false);
         insert("mid", "Steve", 4000, "PENDING", 200, false);
 
-        List<TransactionRecord> history = TransactionRepository.queryPlayerHistory(conn, "Steve", 50, 0);
+        List<TransactionRecord> history = TransactionRepository.queryPlayerHistory(conn, "Steve", null, 50, 0);
         assertEquals("new", history.get(0).txId());
         assertEquals("mid", history.get(1).txId());
         assertEquals("old", history.get(2).txId());
@@ -115,21 +116,21 @@ class TransactionRepositoryHistoryTest {
             insert("tx" + i, "Steve", 1000 + i, "COMPLETED", 100 + i, false);
         }
 
-        List<TransactionRecord> page1 = TransactionRepository.queryPlayerHistory(conn, "Steve", 2, 0);
-        List<TransactionRecord> page2 = TransactionRepository.queryPlayerHistory(conn, "Steve", 2, 2);
+        List<TransactionRecord> page1 = TransactionRepository.queryPlayerHistory(conn, "Steve", null, 2, 0);
+        List<TransactionRecord> page2 = TransactionRepository.queryPlayerHistory(conn, "Steve", null, 2, 2);
 
         assertEquals(2, page1.size());
         assertEquals(2, page2.size());
         // newest first: tx4, tx3 | tx2, tx1
         assertEquals("tx4", page1.get(0).txId());
         assertEquals("tx2", page2.get(0).txId());
-        assertEquals(5, TransactionRepository.queryPlayerHistoryCount(conn, "Steve"));
+        assertEquals(5, TransactionRepository.queryPlayerHistoryCount(conn, "Steve", null));
     }
 
     @Test
     void emptyHistoryForUnknownPlayer() throws Exception {
         insert("a", "Steve", 5000, "COMPLETED", 100, false);
-        assertTrue(TransactionRepository.queryPlayerHistory(conn, "Nobody", 50, 0).isEmpty());
-        assertEquals(0, TransactionRepository.queryPlayerHistoryCount(conn, "Nobody"));
+        assertTrue(TransactionRepository.queryPlayerHistory(conn, "Nobody", null, 50, 0).isEmpty());
+        assertEquals(0, TransactionRepository.queryPlayerHistoryCount(conn, "Nobody", null));
     }
 }

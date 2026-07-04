@@ -3,6 +3,7 @@ package click.sattr.plsDonate.manager;
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 import io.github.projectunified.unidialog.paper.PaperDialogManager;
 import io.github.projectunified.unidialog.paper.dialog.PaperMultiActionDialog;
 import net.kyori.adventure.text.Component;
@@ -136,7 +137,7 @@ public class JavaDialogHandler {
             dialog.opener().open(player);
             return true;
         } catch (Throwable t) {
-            plugin.getLogger().warning("JavaDialogHandler: failed to open donation form for "
+            PluginLogger.warn("JavaDialogHandler: failed to open donation form for "
                     + player.getName() + ": " + t);
             return false;
         }
@@ -208,7 +209,62 @@ public class JavaDialogHandler {
             dialog.opener().open(player);
             return true;
         } catch (Throwable t) {
-            plugin.getLogger().warning("JavaDialogHandler: failed to open confirmation dialog for "
+            PluginLogger.warn("JavaDialogHandler: failed to open confirmation dialog for "
+                    + player.getName() + ": " + t.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Opens admin confirmation dialog for fakedonate/pushdonate commands.
+     * Similar to openConfirmationDialog but dispatches the admin command on accept.
+     *
+     * @return true if the dialog was opened successfully, false on error
+     */
+    public boolean openAdminConfirmationDialog(Player player, String hash, double amount,
+                                                String email, String method, String message,
+                                                boolean isSandbox, String subCommand) {
+        try {
+            String titleSuffix = isSandbox ? " (fake)" : " (push)";
+            Component title = MessageUtils.parseMessage(
+                    plugin.getLangConfig().getString("donation-confirmation-java-dialog.title",
+                            "Donation Confirmation") + titleSuffix);
+
+            // Build header text with donation details
+            Map<String, String> p = MessageUtils.getDonationPlaceholders(
+                    plugin, amount, player.getName(), email, method, message);
+            p.put(Constants.PREFIX, plugin.getLangConfig().getString("prefix", Constants.DEFAULT_PREFIX));
+
+            String headerTemplate = plugin.getLangConfig().getString(
+                    "donation-confirmation-java-dialog.header-text",
+                    "<gray>Amount\n<green>Rp{AMOUNT_FORMATTED}\n\n<gray>Email\n<reset>{EMAIL}\n\n<gray>Method\n{METHOD_COLORED}\n\n<gray>Message\n<reset>{MESSAGE}");
+            String headerText = headerTemplate;
+            for (Map.Entry<String, String> entry : p.entrySet()) {
+                headerText = headerText.replace(entry.getKey(), entry.getValue());
+            }
+            Component headerComponent = MessageUtils.parseMessage(headerText);
+
+            Component yesLabel = MessageUtils.parseMessage(
+                    plugin.getLangConfig().getString("donation-confirmation-java-dialog.yes-label", "<green>Yes"));
+            Component noLabel = MessageUtils.parseMessage(
+                    plugin.getLangConfig().getString("donation-confirmation-java-dialog.no-label", "Cancel"));
+
+            final String confirmCommand = "pdn " + subCommand + " " + hash;
+
+            PaperMultiActionDialog dialog = dialogManager.createMultiActionDialog()
+                    .title(title)
+                    .afterAction(io.github.projectunified.unidialog.core.dialog.Dialog.AfterAction.CLOSE)
+                    .action(a -> a
+                            .label(yesLabel)
+                            .runCommand(confirmCommand))
+                    .exitAction(a -> a
+                            .label(noLabel));
+
+            dialog.body(b -> b.text().text(headerComponent));
+            dialog.opener().open(player);
+            return true;
+        } catch (Throwable t) {
+            PluginLogger.warn("JavaDialogHandler: failed to open admin confirmation dialog for "
                     + player.getName() + ": " + t.getMessage());
             return false;
         }

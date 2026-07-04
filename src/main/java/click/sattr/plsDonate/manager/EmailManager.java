@@ -2,6 +2,7 @@ package click.sattr.plsDonate.manager;
 
 import click.sattr.plsDonate.PlsDonate;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
 import org.bukkit.Bukkit;
 
 import javax.mail.*;
@@ -30,7 +31,7 @@ public class EmailManager {
     public void sendPaymentEmail(String player, String emailAddress, double amount, String formattedAmount, String methodParam, String link, String messageParam) {
         List<Map<?, ?>> hostsList = plugin.getConfig().getMapList("email.hosts");
         if (hostsList == null || hostsList.isEmpty()) {
-            plugin.getLogger().warning("Email hosts not configured in config.yml! Cannot send email to " + player);
+            PluginLogger.warn("Email hosts not configured in config.yml! Cannot send email to " + player);
             return;
         }
 
@@ -49,11 +50,11 @@ public class EmailManager {
 
                 try {
                     sendUsingHost(hostMap, emailAddress, player, amount, formattedAmount, methodParam, link, subject, messageParam);
-                    plugin.getLogger().info("Successfully sent payment email for " + player + " (" + emailAddress + ")");
+                    PluginLogger.info("Successfully sent payment email for " + player + " (" + emailAddress + ")");
                     return;
                 } catch (Exception e) {
                     lastException = e;
-                    plugin.getLogger().warning("Failed to send email for " + player + " using host " + hostId + ": " + e.getMessage());
+                    PluginLogger.warn("Failed to send email for " + player + " using host " + hostId + ": " + e.getMessage());
 
                     String msg = e.getMessage();
                     if (msg != null && (msg.contains("550") || msg.contains("Invalid recipient") || msg.contains("User unknown") || msg.contains("does not exist"))) {
@@ -64,9 +65,9 @@ public class EmailManager {
             }
 
             if (invalidRecipient) {
-                plugin.getLogger().severe("Email address '" + emailAddress + "' appears to be invalid or does not exist (Recipient Rejected).");
+                PluginLogger.severe("Email address '" + emailAddress + "' appears to be invalid or does not exist (Recipient Rejected).");
             } else if (lastException != null) {
-                plugin.getLogger().severe("Failed to send email after trying all available hosts.");
+                PluginLogger.severe("Failed to send email after trying all available hosts.");
                 lastException.printStackTrace();
             }
         });
@@ -102,11 +103,6 @@ public class EmailManager {
         
         if (secure) {
             props.put("mail.smtp.ssl.enable", "true");
-            
-            // Allow all SSL certs to mimic old behavior
-            com.sun.mail.util.MailSSLSocketFactory sf = new com.sun.mail.util.MailSSLSocketFactory();
-            sf.setTrustAllHosts(true);
-            props.put("mail.smtp.ssl.socketFactory", sf);
         } else {
             props.put("mail.smtp.starttls.enable", "true");
         }
@@ -154,7 +150,7 @@ public class EmailManager {
 
         // Enforce .html extension
         if (!templateName.toLowerCase().endsWith(".html")) {
-            plugin.getLogger().warning("Email template '" + templateName + "' in config.yml does not end with .html! Falling back to payment.html");
+            PluginLogger.warn("Email template '" + templateName + "' in config.yml does not end with .html! Falling back to payment.html");
             templateName = "payment.html";
         }
 

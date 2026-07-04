@@ -16,16 +16,22 @@ import click.sattr.plsDonate.platform.DonationPlatform;
 import click.sattr.plsDonate.platform.tako.TakoPlatform;
 import click.sattr.plsDonate.util.Constants;
 import click.sattr.plsDonate.util.MessageUtils;
+import click.sattr.plsDonate.util.PluginLogger;
+import click.sattr.plsDonate.util.ProtocolVersionUtil;
 import click.sattr.plsDonate.webhook.WebhookManager;
 import com.tchristofferson.configupdater.ConfigUpdater;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -71,9 +77,12 @@ public final class PlsDonate extends JavaPlugin implements Listener {
     public DiscordManager getDiscordManager() { return discordManager; }
     public BedrockFormHandler getBedrockFormHandler() { return bedrockFormHandler; }
     public JavaDialogHandler getJavaDialogHandler() { return javaDialogHandler; }
+    public DonateCommand getDonateCommand() { return donateCommand; }
     
     @Override
     public void onEnable() {
+        PluginLogger.init(this);
+
         // Create plugin folder if it doesn't exist
         if (!getDataFolder().exists()) {
             getDataFolder().mkdirs();
@@ -101,6 +110,9 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         saveDefaultTemplates();
         
         loadLanguageConfig();
+
+        // Detect ViaVersion for per-player client protocol version checking
+        ProtocolVersionUtil.init(this);
 
         // Initialize Database & Repositories
         databaseManager = new DatabaseManager(this);
@@ -138,27 +150,46 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         // Register PlaceholderAPI expansion
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new click.sattr.plsDonate.util.PlsDonateExpansion(this).register();
-            getLogger().info("PlaceholderAPI detected! Placeholders registered.");
+            PluginLogger.info("PlaceholderAPI " + getServer().getPluginManager().getPlugin("PlaceholderAPI").getDescription().getVersion() + " detected - https://github.com/SatuSattr/plsDonate/wiki/PlaceholderAPI-Integration");
         }
-        
+
         // Initialize Bedrock/Floodgate Handler if installed
         if (getServer().getPluginManager().getPlugin("floodgate") != null) {
             try {
                 bedrockFormHandler = new BedrockFormHandler(this);
-                getLogger().info("Geyser/Floodgate detected! Bedrock UI support enabled.");
+                PluginLogger.info("Floodgate " + getServer().getPluginManager().getPlugin("floodgate").getDescription().getVersion() + " detected - Bedrock UI support enabled");
             } catch (Exception e) {
-                getLogger().warning("Failed to initialize Bedrock forms although floodgate was detected.");
+                PluginLogger.warn("Failed to initialize Bedrock forms although floodgate was detected.");
             }
+        }
+
+        // Log Geyser if present
+        org.bukkit.plugin.Plugin geyser = getServer().getPluginManager().getPlugin("Geyser-Spigot");
+        if (geyser == null) geyser = getServer().getPluginManager().getPlugin("Geyser");
+        if (geyser != null) {
+            PluginLogger.info("Geyser " + geyser.getDescription().getVersion() + " detected");
+        }
+
+        // Log SkinsRestorer if present
+        org.bukkit.plugin.Plugin skinsRestorer = getServer().getPluginManager().getPlugin("SkinsRestorer");
+        if (skinsRestorer != null) {
+            PluginLogger.info("SkinsRestorer " + skinsRestorer.getDescription().getVersion() + " detected");
+        }
+
+        // Log ViaVersion if present
+        org.bukkit.plugin.Plugin viaVersion = getServer().getPluginManager().getPlugin("ViaVersion");
+        if (viaVersion != null) {
+            PluginLogger.info("ViaVersion " + viaVersion.getDescription().getVersion() + " detected - per-player dialog version check enabled");
         }
 
         // Java Dialog support (1.21.6+)
         try {
             if (JavaDialogHandler.isServerSupported()) {
                 javaDialogHandler = new JavaDialogHandler(this);
-                getLogger().info("Java Dialog support enabled (1.21.6+)");
+                PluginLogger.info("Java Dialog API 1.21.6+ support enabled");
             }
         } catch (Throwable t) {
-            getLogger().info("Java Dialog not available on this server version.");
+            // silently skip — older server version
         }
 
         // Mandatory Webhook Initialization
@@ -167,28 +198,31 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         String path = getConfig().getString(Constants.CONF_WEBHOOK_PATH, Constants.DEFAULT_WEBHOOK_PATH);
         
         if (!webhookManager.start(port, path)) {
-            getLogger().severe("Disabling plugin due to mandatory webhook failure!");
+            PluginLogger.severe("Disabling plugin due to mandatory webhook failure!");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        PluginLogger.info("Webhook listener started on port " + port + " at path " + path);
 
         // Initialize bStats metrics
         metrics = new Metrics(this, BSTATS_PLUGIN_ID);
 
         // Delayed startup message to appear after "Done!"
         Bukkit.getScheduler().runTask(this, () -> {
+            String prefix = langConfig.getString("prefix", Constants.DEFAULT_PREFIX);
             Map<String, String> placeholders = new HashMap<>();
-            placeholders.put(Constants.PREFIX, langConfig.getString("prefix", Constants.DEFAULT_PREFIX));
-            placeholders.put("{PORT}", String.valueOf(getConfig().getInt(Constants.CONF_WEBHOOK_PORT, Constants.DEFAULT_WEBHOOK_PORT)));
-            Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage(langConfig.getString("startup-success", "{PREFIX} <green>plsDonate version " + getPluginMeta().getVersion() + " loaded!</green>"), placeholders));
-            
+            placeholders.put(Constants.PREFIX, prefix);
+            placeholders.put("{PORT}", String.valueOf(port));
+
+            Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage(
+                "{PREFIX} <green>plsDonate has been loaded successfully! <reset>Webhook is listening on port <yellow>{PORT}",
+                placeholders));
+
             if (isLocalEnvironment()) {
-                List<String> warningLines = langConfig.getStringList("local-env-warning");
-                if (!warningLines.isEmpty()) {
-                    for (String line : warningLines) {
-                        Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage(line, placeholders));
-                    }
-                }
+                Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage("{PREFIX} <red>[!] LOCAL ENVIRONMENT DETECTED [!]", placeholders));
+                Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage("{PREFIX} <yellow>It seems you are running this server in a local environment.", placeholders));
+                Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage("{PREFIX} <yellow>Please ensure that your webhook port (<white>{PORT}<yellow>) is accessible from the internet.", placeholders));
+                Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage("{PREFIX} <yellow>You might need to use <white>Port Forwarding <yellow>or <white>ngrok <yellow>to make it work.", placeholders));
             }
 
             checkImportantConfigs();
@@ -218,6 +252,10 @@ public final class PlsDonate extends JavaPlugin implements Listener {
     }
 
     private void checkImportantConfigs() {
+        checkImportantConfigs(null);
+    }
+
+    private void checkImportantConfigs(@Nullable CommandSender sender) {
         Map<String, String> p = new HashMap<>();
         p.put(Constants.PREFIX, langConfig.getString("prefix", Constants.DEFAULT_PREFIX));
 
@@ -255,6 +293,71 @@ public final class PlsDonate extends JavaPlugin implements Listener {
                 Bukkit.getConsoleSender().sendMessage(MessageUtils.parseMessage("{PREFIX} <red>[!] All SMTP hosts are using default/blank credentials! Payment emails will not work.</red>", p));
             }
         }
+
+        validateConfigValues(sender);
+    }
+
+    /**
+     * Validates all numeric config values to reject negative/invalid values.
+     * When called during reload by a player, errors are sent to both the player
+     * and PluginLogger. Otherwise only PluginLogger is used.
+     */
+    private void validateConfigValues(@Nullable CommandSender sender) {
+        Player player = (sender instanceof Player) ? (Player) sender : null;
+        int errors = 0;
+
+        errors += checkNotNegative(player, Constants.CONF_DONATE_MIN_AMOUNT, getConfig().getDouble(Constants.CONF_DONATE_MIN_AMOUNT, 1000));
+
+        double maxAmount = getConfig().getDouble(Constants.CONF_DONATE_MAX_AMOUNT, 10000000);
+        errors += checkNotNegative(player, Constants.CONF_DONATE_MAX_AMOUNT, maxAmount);
+        double minAmount = getConfig().getDouble(Constants.CONF_DONATE_MIN_AMOUNT, 1000);
+        if (minAmount >= 0 && maxAmount >= 0 && maxAmount < minAmount) {
+            String msg = "'" + Constants.CONF_DONATE_MAX_AMOUNT + "' (" + maxAmount + ") is less than '" + Constants.CONF_DONATE_MIN_AMOUNT + "' (" + minAmount + ").";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+            errors++;
+        }
+
+        errors += checkNotNegative(player, Constants.CONF_DONATE_COOLDOWN, getConfig().getInt(Constants.CONF_DONATE_COOLDOWN, 15));
+
+        int maxMsgLen = getConfig().getInt(Constants.CONF_DONATE_MAX_MESSAGE, 100);
+        if (maxMsgLen <= 0) {
+            String msg = "'" + Constants.CONF_DONATE_MAX_MESSAGE + "' is " + maxMsgLen + ". Must be > 0.";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+            errors++;
+        }
+
+        int port = getConfig().getInt(Constants.CONF_WEBHOOK_PORT, Constants.DEFAULT_WEBHOOK_PORT);
+        if (port < 1 || port > 65535) {
+            String msg = "'" + Constants.CONF_WEBHOOK_PORT + "' is " + port + ". Must be between 1 and 65535.";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+            errors++;
+        }
+
+        errors += checkNotNegative(player, Constants.CONF_MILESTONE_TARGET, getConfig().getDouble(Constants.CONF_MILESTONE_TARGET, 1000000));
+        errors += checkNotNegative(player, Constants.CONF_MILESTONE_OFFSET, getConfig().getDouble(Constants.CONF_MILESTONE_OFFSET, 0));
+
+        if (errors > 0) {
+            String msg = "Found " + errors + " invalid config value(s). Please fix them in config.yml and run /pdn reload.";
+            PluginLogger.severe(msg);
+            if (player != null) sendErrorToPlayer(player, msg);
+        }
+    }
+
+    private int checkNotNegative(@Nullable Player player, String configKey, double value) {
+        if (value >= 0) return 0;
+        String msg = "'" + configKey + "' is negative (" + value + "). Must be >= 0.";
+        PluginLogger.severe(msg);
+        if (player != null) sendErrorToPlayer(player, msg);
+        return 1;
+    }
+
+    private void sendErrorToPlayer(Player player, String message) {
+        Map<String, String> p = new HashMap<>();
+        p.put(Constants.PREFIX, langConfig.getString("prefix", Constants.DEFAULT_PREFIX));
+        player.sendMessage(MessageUtils.parseMessage("{PREFIX} <red>[!] " + message + "</red>", p));
     }
 
     private void loadLanguageConfig() {
@@ -290,6 +393,7 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         }
 
         langConfig = YamlConfiguration.loadConfiguration(langFile);
+        // Plain logger here — langConfig not yet assigned, PluginLogger colored output not yet usable
         getLogger().info("Language loaded: " + langName);
     }
 
@@ -304,7 +408,11 @@ public final class PlsDonate extends JavaPlugin implements Listener {
     }
 
     public void reloadPlugin() {
-        getLogger().info("Reloading plsDonate configuration...");
+        reloadPlugin(null);
+    }
+
+    public void reloadPlugin(@Nullable CommandSender sender) {
+        PluginLogger.info("Reloading plsDonate configuration...");
         if (webhookManager != null) {
             webhookManager.stop();
         }
@@ -313,7 +421,7 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         try {
             ConfigUpdater.update(this, "config.yml", configFile, Collections.emptyList());
         } catch (IOException e) {
-            getLogger().severe("Could not update config.yml during reload!");
+            PluginLogger.severe("Could not update config.yml during reload!");
             e.printStackTrace();
         }
         
@@ -337,7 +445,7 @@ public final class PlsDonate extends JavaPlugin implements Listener {
             try {
                 bedrockFormHandler = new BedrockFormHandler(this);
             } catch (Exception e) {
-                getLogger().warning("Failed to initialize Bedrock forms during reload.");
+                PluginLogger.warn("Failed to initialize Bedrock forms during reload.");
             }
         }
 
@@ -345,11 +453,11 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         String path = getConfig().getString(Constants.CONF_WEBHOOK_PATH, Constants.DEFAULT_WEBHOOK_PATH);
         
         if (!webhookManager.start(port, path)) {
-            getLogger().severe("Failed to restart mandatory webhook listener during reload!");
+            PluginLogger.severe("Failed to restart mandatory webhook listener during reload!");
         }
 
-        checkImportantConfigs();
-        getLogger().info("plsDonate reload complete.");
+        checkImportantConfigs(sender);
+        PluginLogger.info("plsDonate reload complete.");
     }
 
     public void loadActivePlatform() {
@@ -357,7 +465,7 @@ public final class PlsDonate extends JavaPlugin implements Listener {
         // Recreating would leak the previous instance's HttpClient thread pool.
         if (donationPlatform == null) {
             donationPlatform = new TakoPlatform(this);
-            getLogger().info("Donation Platform: Tako.id Enabled");
+            PluginLogger.info("Donation Platform: Tako.id Enabled");
         }
     }
 

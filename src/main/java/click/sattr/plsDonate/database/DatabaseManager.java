@@ -3,6 +3,7 @@ package click.sattr.plsDonate.database;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import click.sattr.plsDonate.PlsDonate;
+import click.sattr.plsDonate.util.PluginLogger;
 
 import java.io.File;
 import java.sql.Connection;
@@ -50,6 +51,7 @@ public class DatabaseManager {
                     "tx_id TEXT UNIQUE, " +
                     "amount REAL, " +
                     "donor_name TEXT, " +
+                    "donor_uuid TEXT, " +
                     "checksum TEXT, " +
                     "status TEXT, " +
                     "timestamp INTEGER, " +
@@ -62,7 +64,7 @@ public class DatabaseManager {
                     "player TEXT, " +
                     "command TEXT)");
         } catch (SQLException e) {
-            plugin.getLogger().severe("Failed to initialize database tables: " + e.getMessage());
+            PluginLogger.severe("Failed to initialize database tables: " + e.getMessage());
         }
     }
 
