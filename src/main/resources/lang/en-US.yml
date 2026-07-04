@@ -327,3 +327,11 @@ donation-confirmation-java-dialog:
 
   yes-label: "<green>Yes"
   no-label: "Cancel"
+
+# Update Checker Messages
+# Available Placeholders: {PREFIX}, {VERSION}, {NEW_VERSION}, {URL}
+update-checking: "{PREFIX} <gray>Checking for updates..."
+update-current: "{PREFIX} <green>You are running the latest version ({VERSION})."
+update-available: "{PREFIX} <yellow>Update available: <click:open_url:\"{URL}\"><hover:show_text:\"<gray>Click to download\">{NEW_VERSION}</hover></click> <gray>(current: {VERSION})"
+update-skip: "{PREFIX} <gray>Update check skipped — last checked less than 60 minutes ago."
+update-fail: "{PREFIX} <red>Could not check for updates."
