@@ -1,5 +1,5 @@
 name: plsDonate
-version: "1.0"
+version: "${project.version}"
 main: click.sattr.plsDonate.PlsDonate
 api-version: "1.21"
 commands:
