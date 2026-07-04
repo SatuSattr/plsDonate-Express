@@ -50,3 +50,7 @@ permissions:
   plsdonate.admin.reload:
     description: Reload the plugin configuration
     default: op
+
+  plsdonate.update.notify:
+    description: Receive update notifications on join
+    default: op
